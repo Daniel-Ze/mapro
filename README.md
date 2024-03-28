@@ -350,3 +350,6 @@ Dry-run, the following will be executed when running without -d:
  [info] Command:        rm -r /Users/daniel/Documents/create_project/test/
  [info] Command:        sqlite3 /Users/daniel/.projects.db "DELETE FROM projects WHERE name = 'test';"
 ```
+
+
+mapro © 2024 by Daniel-Ze is licensed under Attribution-NonCommercial-ShareAlike 4.0 International 
