@@ -96,7 +96,7 @@ Available helper scripts:
         create  - creates a new project with folder structure
                   and files to keep track of things.
         check   - overview of created projects to keep track
-                  of what you're doing
+                  of what you are doing
         edit    - editing an existing project
                   (e.g. rename, move, change project status)
         remove  - removes an existing project
@@ -138,7 +138,7 @@ The following part of the script will guide you through the generation of the pr
 
 ```bash
 (base) 💻 daniel:create_project $ mapro create -p test
- [info] You're in:      /Users/daniel/Documents/create_project/
+ [info] You are in:     /Users/daniel/Documents/create_project/
  [info] Project name:   test
  [info] Project dir:    /Users/daniel/Documents/create_project/test/
 
