@@ -10,7 +10,7 @@ Automating half of the things that I mentioned above is already a huge help and 
 
 ## Dependencies
 
-The scripts are limited to Unix operating systems.\
+The scripts are limited to Unix operating systems.
 
 Tested and developed on:
 
