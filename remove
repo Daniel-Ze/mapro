@@ -1,0 +1,111 @@
+#!/bin/bash
+
+# Removes a project created by 'create_project'
+
+# Be fancy
+R='\033[0;31m'
+G='\033[0;32m'
+Y='\033[0;33m'
+B='\033[0;34m'
+NC='\033[0m'
+
+info=${Y}" [info]"${NC}
+error=${R}"[error]"${NC}
+
+CHECK=${G}'\xE2\x9C\x94'${NC}
+
+# Database for projects
+DB_FILE=$HOME"/.projects.db"
+
+# Function to print the usage
+helpFunction() {
+    echo ""
+    echo -e "This script will remove created projects. Use with caution."
+    echo ""
+    echo -e "Usage: ${G}$(basename -- "$0")${NC} -p <project name>"
+	echo -e "\t-p: project name"
+	echo -e "\t-d: dry running this"
+    echo ""
+    exit 0
+}
+
+# Input check
+parameterD=false
+no_flag=true
+
+while getopts "dp:h" opt
+do
+    case "$opt" in
+        d ) 
+			parameterD="true"
+			no_flag=false
+			;;
+		p ) 
+			parameterP="$OPTARG"
+			no_flag=false
+			;;
+        h ) 
+			helpFunction 
+			;;
+		\?) 
+			echo "Invalid option: -$OPTARG" 
+			helpFunction
+      		;;
+    	:)
+    esac
+done
+
+# Check if no flags were supplied
+if $no_flag; then
+  helpFunction
+fi
+
+# Check if the indicated project exists
+check_db=$(sqlite3 "$DB_FILE" "SELECT name FROM projects WHERE name = '$parameterP';")
+
+# Get the path to the project to be deleted
+del_dir=$(sqlite3 $DB_FILE "SELECT location FROM projects WHERE name = '$parameterP';")
+
+
+if [[ -n $check_db ]];
+then
+	if [[ ! $parameterD == "true" ]];
+	then
+		# does the real deal
+		echo ""
+		while true; 
+		do
+			echo -e "${R}Really want to delete: ${NC}"
+			echo -e "${R}Project:\t$parameterP ${NC}"
+			echo -e "${R}Project dir:\t$del_dir ${NC}"
+    		read -p "(y/n) " answer
+    		echo ""
+			if [[ $answer =~ ^[Yy]$ ]];
+			then
+				# Remove the directory
+				rm -r $del_dir
+
+				# Remove project from ~/.projects file
+				sqlite3 "$DB_FILE" "DELETE FROM projects WHERE name = '$parameterP';"
+				break
+				exit
+			else
+				echo "Better safe than sorry. Quitting."
+				break
+				exit
+			fi
+		done 
+		
+	else
+		echo -e "${Y}Dry-run, the following will be executed when" \
+				"running without -d: ${NC}\n"
+		echo -e "$info\t${Y}Project:${NC}\t$parameterP"
+		echo -e "$info\t${Y}Project dir:${NC}\t$del_dir"
+		echo -e "$info\t${Y}Command:\t${R}rm -r${NC} $del_dir${NC}"
+		echo -e "$info\t${Y}Command:\t${R}sqlite3${NC} $DB_FILE" \
+				"\"DELETE FROM projects WHERE name = '$parameterP';\""
+	fi
+else
+	echo -e "$info\tProject does not exist"
+	exit 1
+fi

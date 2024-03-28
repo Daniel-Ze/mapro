@@ -1,0 +1,73 @@
+#!/bin/bash
+
+R='\033[0;31m'
+G='\033[0;32m'
+Y='\033[0;33m'
+B='\033[0;34m'
+NC='\033[0m'
+
+info=${Y}" [info]"${NC}
+error=${R}"[error]"${NC}
+
+CHECK=${G}'\xE2\x9C\x94'${NC}
+
+script_path=$(readlink -f "$0")
+scripts_dir=$(dirname "$script_path")
+
+helpFunction() {
+	echo -e ""
+	echo -e "${Y}mapro${NC} is there to help you organize your projects."
+	echo -e "Create a generic folder structure and files to document and"
+	echo -e "keep track of your porjects."
+	echo -e ""
+	echo -e "usage:\t${Y}mapro${NC} <${G}function${NC}> -h"
+	echo -e ""
+	echo -e "Available helper scripts:"
+	echo -e ""
+	echo -e "\t${G}create${NC}\t- creates a new project with folder" \
+			"structure"
+	echo -e "\t\t  and files to keep track of things."
+	echo -e "\t${G}check${NC}\t- overview of created projects to" \
+			"keep track"
+	echo -e "\t\t  of what you're doing"
+	echo -e "\t${G}edit${NC}\t- editing an existing project"
+	echo -e "\t\t  (e.g. rename, move, change project status)"
+	echo -e "\t${G}remove${NC}\t- removes an existing project"
+	echo -e "\t\t  (completely deletes everything)"
+	echo -e ""
+}
+
+while true; do
+    script_name=$1
+
+    case $script_name in
+        create )
+            $scripts_dir"/create" "${@:2}"
+			break
+            ;;
+        check )
+            $scripts_dir"/check" "${@:2}"
+			break
+            ;;
+		edit )
+			$scripts_dir"/edit" "${@:2}"
+			break
+			;;
+		remove )
+			$scripts_dir"/remove" "${@:2}"
+			break
+			;;
+		status )
+			$scripts_dir"/status" "${@:2}"
+			break
+			;;
+        -h | --help | help )
+            helpFunction
+            exit 0
+            ;;
+        *)
+            helpFunction
+			exit 0
+            ;;
+    esac
+done

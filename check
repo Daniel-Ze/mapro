@@ -1,0 +1,245 @@
+#!/bin/bash
+
+# Bash script that checks all current projects created with 
+# "create_project"
+
+R='\033[0;31m'
+G='\033[0;32m'
+Y='\033[0;33m'
+B='\033[0;34m'
+NC='\033[0m'
+
+info=${Y}" [info]"${NC}
+error=${R}"[error]"${NC}
+
+CHECK=${G}'\xE2\x9C\x94'${NC}
+
+DB_FILE=$HOME"/.projects.db"
+
+# Function to print the usage
+helpFunction() {
+    echo ""
+    echo -e "This script will check created projects."
+    echo ""
+    echo -e "Usage: $(basename -- "$0")"
+	echo -e "\t-g: will check 'git diff' for unstaged changes in projects."
+	echo -e "\t-l: will list all projects"
+	echo -e "\t-a: will list all active projects"
+	echo -e "\t-t: will list projects with matching tag/tags <tag1,tag2>"
+	echo -e "\t-n: will list projects with matching names <name>"
+	echo -e "\t-i: will check if projects are where they are supposed to be"
+	echo -e "\t-v: verbose"
+    echo ""
+    exit 1
+}
+
+# Input check
+parameterG=false
+parameterL=false
+parameterA=false
+parameterU=false
+search_tag=false
+name=false
+check_integrity=false
+verbose=false
+
+while getopts "ilaught:n:v" opt
+do
+    case "$opt" in
+		a )
+			parameterA="true"
+			;;
+        g ) 
+            parameterG="true" 
+            ;;
+		i )
+			parameterI="true"
+			;;
+		l )
+			parameterL="true"
+			;;
+		u )
+			parameterU="true"
+			;;
+		t )
+			parameterT="$OPTARG"
+			search_tag="true"
+			;;
+		n )
+			parameterN="$OPTARG"
+			name="true"
+			;;
+		v )
+			verbose="true"
+			;;
+        h ) 
+            helpFunction
+            ;;
+    esac
+done
+
+# List all projects
+if [[ "$parameterL" == "true" ]]; then
+	buffer=""
+	while read l;
+	do 
+		status=$(echo $l | cut -f6 -d'|')
+		name=$(echo $l | cut -f2 -d'|')
+		dir=$(echo $l | cut -f5 -d'|')
+		if [[ $status == "active" ]];
+		then
+			buffer+="${G}   [active]${NC}\t${B}$name${NC}\t$dir\n"
+		elif [[ $status == "suspended" ]];
+		then
+			buffer+="${Y}[suspended]${NC}\t${B}$name${NC}\t$dir\n"
+		elif [[ $status == "complete" ]];
+		then
+			buffer+="${Y} [complete]${NC}\t${B}$name${NC}\t$dir\n"
+		fi
+	done < <(sqlite3 $DB_FILE "SELECT * FROM projects;")
+	echo -e ${buffer} | sort | less -Sr
+	exit
+fi
+
+# List all active projects
+if [[ "$parameterA" == "true" ]]; then
+	buffer=""
+	
+	while read l;
+	do
+		project=$(echo $l | cut -f2 -d'|')
+		dir=$(echo $l | cut -f5 -d'|')
+		buffer+="${G}   [active]${NC}\t${B}$project${NC}\t$dir\n"
+	done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE status = 'active';")
+	echo -e ${buffer} | sort | less -Sr
+	exit
+fi
+
+# Check if all files are staged in the different active project repositories
+if [[ "$parameterG" == "true" ]]; then
+	buffer=""
+	buffer_has_changes=""
+	up_to_date=true
+	while read -r l; do
+		project=$(echo $l | cut -f2 -d'|')
+		dir=$(echo $l | cut -f5 -d'|')
+		if ! git -C $dir diff --exit-code > /dev/null; then 
+			buffer+="${R}has-changes${NC}\t${B}$project${NC}\t$dir\n"
+			buffer_has_changes+="$dir\n"
+			up_to_date=false
+		else 
+			buffer+="${G}up-to-date${NC} $CHECK\t${B}$project${NC}\t$dir\n"
+		fi
+	done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE status = 'active'";)
+	echo -e ${buffer} | sort | less -Sr
+	if [ $up_to_date = false ];
+	then
+		while true; do
+    		echo ""
+    		read -p "Do you want to run \"git add .\" on all not up-to-date projects? (y/n) " answer
+    		echo ""
+			if [[ $answer =~ ^[Yy]$ ]];
+			then
+				echo -e "$info\tRunning \"git add .\" on the projects."
+				echo -e $buffer_has_changes | \
+						grep -v '^$' | \
+						while read l; do git -C $l add .; done
+				exit 0
+			else
+				echo -e "$info\tPlease run \"git add .\" manually to save" \
+						"changes."
+				exit 0
+			fi
+		done
+	fi
+	exit 0
+fi
+
+
+if [[ $search_tag == "true" ]];
+then
+	buffer=""
+	IFS=',' read -r -a tags <<< "$parameterT"
+	for tag in "${tags[@]}";
+	do
+		while read l;
+		do
+			status=$(echo $l | cut -f6 -d'|')
+			name=$(echo $l | cut -f2 -d'|')
+			dir=$(echo $l | cut -f5 -d'|')
+			entry_tags=$(echo $l | cut -f4 -d'|')
+			if [[ $status == "active" ]];
+			then
+				buffer+="${G}   [active]${NC}\t${B}$name${NC}\t${Y}$entry_tags${NC}\t$dir\n"
+			elif [[ $status == "finished" ]];
+			then
+				buffer="${Y}$[finished]${NC}\t${B}$name${NC}\t${Y}$tag{NC}\t$dir\n"
+			fi
+		done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE tags LIKE '%$tag%';")
+	done
+	echo -e ${buffer} | sort | uniq | less -Sr
+	exit
+fi
+
+if [[ $name == "true" ]];
+then
+	buffer=""
+
+	while read l;
+	do
+		status=$(echo $l | cut -f6 -d'|')
+		name=$(echo $l | cut -f2 -d'|')
+		dir=$(echo $l | cut -f5 -d'|')
+		entry_tags=$(echo $l | cut -f4 -d'|')
+		if [[ $status == "active" ]];
+		then
+			buffer+="${G}   [active]${NC}\t${B}$name${NC}\t${Y}$entry_tags${NC}\t$dir\n"
+		elif [[ $status == "finished" ]];
+		then
+			buffer="${Y}$[finished]${NC}\t${B}$name${NC}\t${Y}$tag{NC}\t$dir\n"
+		fi
+	done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE name LIKE '%$parameterN%';")
+	echo -e ${buffer} | sort | less -Sr
+	exit
+fi
+
+# Premature consistency check
+if [[ $parameterI == "true" ]];
+then
+	count=0
+	buffer=""
+	while read l;
+	do
+		if [ -d $l ];
+		then
+			if [[ $verbose == "true" ]];
+			then
+				echo -e "$info\t$l exists."
+			fi
+		else
+			count = $count + 1
+			if [[ $verbose == "true" ]];
+			then
+				echo -e "$error\t$l does not exist."
+			fi
+		fi
+	done < <(sqlite3 $DB_FILE "SELECT location FROM projects;")
+	if [[ $count > 0 ]]; then 
+		echo -e "$error\tConsitency check failed. Run with -v for full intormation"
+		exit 1
+	else
+		echo -e "$info\tAll fine. $CHECK"
+		exit 0
+	fi
+fi
+
+num_all_projects=$(sqlite3 "$DB_FILE" "SELECT * FROM projects;" | wc -l)
+num_active_projects=$(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE status = 'active';" | wc -l)
+num_suspended_projects=$(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE status = 'suspended';" | wc -l)
+num_complete_projects=$(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE status = 'complete';" | wc -l)
+
+echo -e "$info\tTotal number of projects:\t"$num_all_projects
+echo -e "\t___________________________________"
+echo -e "$info\tActive projects:\t\t"$num_active_projects
+echo -e "$info\tSuspended projects:\t\t"$num_suspended_projects
+echo -e "$info\tCompleted projects:\t\t"$num_complete_projects

@@ -1,0 +1,219 @@
+#!/bin/bash
+
+# Bash script that renames a project that was created with
+# "create_project"
+
+R='\033[0;31m'
+G='\033[0;32m'
+Y='\033[0;33m'
+B='\033[0;34m'
+NC='\033[0m'
+
+info=${Y}" [info]"${NC}
+error=${R}"[error]"${NC}
+
+CHECK=${G}'\xE2\x9C\x94'${NC}
+
+# Database for projects
+DB_FILE=$HOME"/.projects.db"
+
+# Function to print the usage
+helpFunction() {
+    echo ""
+    echo -e "This script will edit a project. This includes renaming,"
+	echo -e "moving to new directory and changing the status"
+    echo ""
+    echo -e "Usage: ${G}$(basename -- "$0")${NC} -p <old_project_name> -n" \
+			"<new_project_name>"
+	echo -e "Usage: ${G}$(basename -- "$0")${NC} -p <project_name> -m" \
+			"</path/to/new/location>"
+	echo -e "Usage: ${G}$(basename -- "$0")${NC} -p <project_name> -s" \
+			"<active | complete | suspended>"
+	echo -e "\t-p: Project to be renamed."
+	echo -e "\t-n: New project name (no spaces allowed)"
+	echo -e "\t-m: New project location (no spaces allowed)"
+	echo -e "\t-s: Change the project status (active, complete, suspended)"
+	echo -e "\t-d: Dry running to see whats about to happen."
+    echo ""
+    exit 0
+}
+
+# Input check
+parameterD=false
+rename=false
+move=false
+status=false
+
+while getopts "p:n:m:s:dh" opt
+do
+    case "$opt" in
+        p ) 
+            parameterP="$OPTARG"
+            ;;
+		m )
+			parameterM="$OPTARG"
+			move=true
+			;;
+		n ) 
+		    parameterN="$OPTARG"
+			rename=true
+			;;
+		d )
+			parameterD="true"
+			;;
+		s )
+			parameterS="$OPTARG"
+			status=true
+			;;
+        h ) 
+		    helpFunction
+            ;;
+		\? ) 
+			echo "Invalid option: -$OPTARG" 
+			helpFunction
+      		;;
+    esac
+done
+
+if [ $OPTIND -eq 1 ]
+then
+    helpFunction
+fi
+
+if [ -z $parameterP ];
+then
+	echo -e "$error\tNo project name. Quitting."
+	exit 1
+fi
+
+check_db=$(sqlite3 "$DB_FILE" "SELECT name FROM projects WHERE name = '$parameterP';")
+
+if [[ ! -n "$check_db" ]]; 
+then
+	echo -e "$error\tProject does not exist. Quitting."
+	exit 1
+fi
+
+if [[ "$rename" = true ]]; 
+then
+	while read l; 
+	do 
+		project=$(echo $l | cut -f2 -d'|')
+		dir=$(echo $l | cut -f5 -d'|')
+		
+		if ! git -C $dir diff --exit-code > /dev/null;
+		then
+			echo -e "$error\tProject has uncommitted changes. Please run:"
+			echo -e "$error\t\tgit -C <dir> add ."
+			echo -e "$error\t\tgit -C <dir> commit '<message>'"
+			echo -e "$error\tQuitting."
+			exit 1
+		else
+			new_dir=$(dirname $dir)"/"$parameterN"/"
+
+			if [[ $parameterD == "true" ]];
+			then
+				echo -e "${Y}Dry-run, the following will be executed when" \
+				        "running without -d${NC}\n"
+
+				echo -e "$info\tOld dir: $dir"
+				echo -e "$info\tNew dir: $new_dir\n"
+				echo -e "$info\tCommand: ${G}sqlite3${NC} $DB_FILE \"UPDATE" \
+						"projects SET name = '$parameterN', location = " \
+						"'$new_dir' WHERE name = '$parameterP';\""
+
+				echo -e "$info\tCommand: ${G}mv${NC} $dir $new_dir" 
+				echo -e "$info\tCommand: ${G}echo${NC} \"old_name: " \
+						"$parameterP\" >> $new_dir.project_status"
+
+				echo -e "$info\tCommand: ${G}echo${NC} \"  change_date: " \
+						"$(date +"%Y-%m-%d %T")\" >> $new_dir.project_status"
+				exit 0
+			else
+				echo -e "$info\tRenaming and moving for real"
+				echo -e "$info\tOld dir: $dir"
+				echo -e "$info\tNew dir: $new_dir"
+				sqlite3 $DB_FILE "UPDATE projects SET name = '$parameterN', location = '$new_dir' WHERE name = '$parameterP';"
+				mv $dir $new_dir
+
+				echo "old_name: $parameterP" >> $new_dir".project_status"
+
+				echo "  change_date: $(date +"%Y-%m-%d %T")" >> \
+					$new_dir".project_status"
+			fi
+		fi
+	done < <(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE name = '$parameterP';")
+	echo -e "$info\tFinished renaming. $CHECK"
+	exit 0
+fi
+
+if [ "$status" = true ] && [ $parameterS = "active" ] || \
+						   [ $parameterS = "complete" ] || \
+						   [ $parameterS = "suspended" ];
+then
+	while read l; 
+	do 
+		project=$(echo $l | cut -f2 -d'|')
+		dir=$(echo $l | cut -f5 -d'|')
+		
+		if ! git -C $dir diff --exit-code > /dev/null;
+		then
+			echo -e "$error\tProject has uncommitted changes. Please run:"
+			echo -e "$error\t\tgit -C <dir> add ."
+			echo -e "$error\t\tgit -C <dir> commit '<message>'"
+			echo -e "$error\tQuitting."
+		else
+			current_status=$(sqlite3 $DB_FILE "SELECT status FROM projects WHERE name = '$project';")
+			if [ $parameterS = $current_status ];
+			then
+				echo -e "$info\tProject already marked as" \
+						"${G}$parameterS${NC}. Nothing to do. $CHECK"
+				exit 0
+			fi
+			case $parameterS in
+				active )
+					echo -e "$info\tProject status will change from" \
+							"$current_status to ${G}$parameterS${NC}"
+					sqlite3 $DB_FILE "UPDATE projects SET status = '$parameterS' WHERE name = '$parameterP';"
+					;;
+				
+				complete )
+					echo -e "$info\tProject status will change from" \
+							"$current_status to ${G}$parameterS${NC}"
+					echo -e "$info\tA immutable snapshot of the project" \
+							"will be created with git as well as a" \
+							".tar.gz archive in the folder final"
+					
+					# Make the "final" dir
+					if [ ! -d $dir"final/" ]; 
+					then
+						mkdir $dir"final/"
+					fi
+
+					cd $dir
+
+					# Create the ".tar.gz" archive
+					tar -czvf final/$project"_final.tar.gz" .
+					git tag -a $project"_final" -m "A immutable snapshot of the finished project folder."
+
+					# Change the status in the database
+					sqlite3 $DB_FILE "UPDATE projects SET status = '$parameterS' WHERE name = '$project';"
+
+					# Change the status in the .project_status 
+					sed -i 's/active/complete/g' .project_status
+					;;
+				
+				suspended )
+					echo -e "$info\tProject status will change from" \
+							"$current_status to ${G}$parameterS${NC}"
+					
+					;;
+			esac
+		fi
+	done < <(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE name = '$parameterP';")
+	echo -e "$info\tFinished changing status. $CHECK"
+	exit 0
+else
+	echo -e "$error\tUnknown status. Quitting."
+	exit 1
+fi

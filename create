@@ -1,0 +1,232 @@
+#!/bin/bash
+
+# Be fancy
+R='\033[0;31m'
+G='\033[0;32m'
+Y='\033[0;33m'
+B='\033[0;34m'
+NC='\033[0m'
+
+info=${Y}"   [info]"${NC}
+warn=${Y}"[warning]"${NC}
+error=${R}"  [error]"${NC}
+
+CHECK4=${G}'\xE2\x9C\x94\xE2\x9C\x94\xE2\x9C\x94\xE2\x9C\x94'${NC}
+CHECK=${G}'\xE2\x9C\x94'${NC}
+
+
+# Variables
+DB_FILE=$HOME"/.projects.db"
+wd=`pwd`/
+
+
+# Check of SQlite is installed
+if ! command -v sqlite3 &> /dev/null; then
+    echo "$error\tSQLite3 is not installed. Please install it first."
+    exit 1
+fi
+
+
+helpFunction() {
+    # This is the help dialog printed to the terminal to help with functions.
+
+    echo ""
+    echo -e "This script will create a project folder structure in the current"
+    echo -e "directory."
+    echo ""
+    echo -e "Usage: ${G}$(basename -- "$0")${NC} -p project_name"
+    echo ""
+    exit 0
+}
+
+
+initializeDatabase() {
+    # This function will create a SQlite3 database file in the $HOME directory 
+    # of the user. It will be a hidden file to prevent accidental manipulation 
+    # by the user.
+
+    SQL_CREATE_TABLE="CREATE TABLE projects (
+                        uid TEST PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        tags TEXT,
+                        location TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        date DATE DEFAULT CURRENT_DATE
+                    );"
+
+    sqlite3 "$DB_FILE" "$SQL_CREATE_TABLE"
+}
+
+
+# Parse input
+while getopts "hp:" opt
+do
+    case "$opt" in
+        p ) 
+            parameterP="${OPTARG}"
+            ;;
+        h )
+            helpFunction
+            ;;
+        * ) 
+            helpFunction
+            ;;
+        ? ) 
+            helpFunction
+            ;;
+    esac
+done
+
+if [ $OPTIND -eq 1 ]
+then
+    helpFunction
+fi
+
+# Check if the database file already exists
+if [ -f "$DB_FILE" ]; then
+    echo -e "$info\tUsing database file: $DB_FILE $CHECK"
+else
+    echo -e "$info\tCreating database file: $DB_FILE"
+    initializeDatabase
+fi
+
+check_db=$(sqlite3 "$DB_FILE" "SELECT name FROM projects WHERE name = '$parameterP';")
+
+if [ -n "$check_db" ]; 
+then
+    echo -e "$warn\tA project with name ${R}$parameterP${NC} already exists in the database."
+    if [[ -d $wd"${parameterP}" ]]; 
+    then
+        echo -e "$error\tA folder exists with the same name in this directory. Quitting."
+        exit 1
+    else
+        read -p "        Create anyway in this folder? (y/n): " answer
+
+        if [[ $answer =~ ^[Yy]$ ]] ;
+        then
+            echo -e "$info\tContinue..."
+        else
+            echo -e "$info\tStopping."
+            exit 0
+        fi
+    fi
+fi
+
+# Summary
+echo -e "$info\tYou're in:\t$wd"
+echo -e "$info\tProject name:\t$parameterP"
+echo -e "$info\tProject dir:\t$wd"${parameterP}"/"
+
+while true; do
+    echo ""
+    read -p "Create folder/file structure? (y/n) " answer
+    echo ""
+
+    if [[ $answer =~ ^[Yy]$ ]] ;
+    then
+        echo -e "$info\tCreating the folder/file structure."
+    else
+        echo -e "$info\tStopping."
+        exit 0
+    fi
+
+    break
+done
+
+# Create folder structure
+echo -e "$info\t$CHECK  Creating the folders."
+mkdir -p $wd"${parameterP}/"{data,docs,img,scripts}
+pd=$wd"${parameterP}"/
+
+# Create files
+echo -e "$info\t$CHECK  Creating the files."
+touch $pd"TODO.md"
+touch $pd"README.md"
+touch $pd"NOTES.md"
+touch $pd".project_status"
+
+# Create file content
+echo -e "$info\t$CHECK  Creating the file content."
+# - README.md
+echo "# $parameterP" >> $pd"README.md"
+#   - Add short description
+#   - Add tags
+while true; do
+    echo ""
+    read -p "Add description and tags? (y/n) " answer
+    echo ""
+    if [[ $answer =~ ^[Yy]$ ]];
+    then
+        echo -e "Description (${R}return${NC} will enter): \n"
+        read -p " " description
+        echo -e "\n$description\n" >> $pd"README.md"
+        echo -e "Tags (comma seperated): \n"
+        read -p " " tags
+        echo -e "Tags: $tags" >> $pd"README.md"
+    else
+        echo -e "$info\tNo description and no Tags added... Good luck future you."
+        description=NA
+        tags=NA
+    fi
+    break
+done
+
+# - TODO.md
+echo "# $parameterP ToDo's" >> $pd"TODO.md"
+#   - Add todos line by line
+while true; do
+    echo ""
+    read -p "Do you want to add any ToDos? (y/n) " answer
+    echo ""
+    if [[ $answer =~ ^[Yy]$ ]];
+    then
+        echo -e "Empty TODO exits the entry:"
+        echo -e "\n" >> $pd"TODO.md"
+        while true; do
+            read -p "TODO: " todo
+            if [[ -z $todo ]];
+            then
+                break
+            else
+                echo -e "- $todo" >> $pd"TODO.md"
+            fi
+        done
+    fi
+    break
+done
+
+# - .project_status
+#   - put 'active' as status
+uid=$(ls -alR $pd | md5)
+echo -e "status: active" > $pd".project_status"
+echo -e "uid: $uid" >> $pd".project_status"
+
+# Adding project to database ~/.projects.db
+INSERT_PROJECT="INSERT INTO projects (
+                    uid, 
+                    name, 
+                    description, 
+                    tags, 
+                    location, 
+                    status
+                ) "
+PROJECT_VALUES="VALUES (
+                    '$uid', 
+                    '$parameterP', 
+                    '$description', 
+                    '$tags', 
+                    '$pd', 
+                    'active'
+                );"
+SQL_QUERY="$INSERT_PROJECT $PROJECT_VALUES"
+sqlite3 "$DB_FILE" "$SQL_QUERY"
+
+# GIT version control of the new project
+echo -e "\n$info\tRunning git init, git add and git commit\n"
+cd $pd
+git init
+git add .
+git commit -m "Project $parameterP intialized and tracked"
+
+echo -e "\n$info\tDone. ${CHECK}"
