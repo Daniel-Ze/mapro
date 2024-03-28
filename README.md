@@ -10,7 +10,7 @@ Automating half of the things that I mentioned above is already a huge help and 
 
 ## Dependencies
 
-The scripts are limited to Unix operating systems.
+The scripts in this repository are all written in bash. This might limit them to UNIX systems.
 
 Tested and developed on:
 
@@ -25,18 +25,18 @@ Tested and developed on:
 - [SQlite](https://www.sqlite.org/index.html) - managing the project database
   - version 3.37.0
 
- `bash`, `GIT` and `SQlite3` should be preinstalled on most of the unix systems.
+`bash`, `GIT` and `SQlite3` should be preinstalled on most of the unix systems.
 
 ## Install 
 
-I would recommoned to link the helper scripts to one of the `bin/` directories in your path e.g. `~/.local/bin` on MacOS. Following is an example of how I have it setup:
+I would recommoned to link the helper script (`mapro`) to one of the `bin/` directories in your path e.g. `~/.local/bin` on MacOS. Following is an example of how I have it setup:
 
 ```bash
 (base) 💻 daniel:~ $ cd ~/.local/bin
 (base) 💻 daniel:bin $ ln -s /Users/daniel/Documents/create_project/mapro ./
 ```
 
-Make sure to use the full path to the bash scripts.
+Make sure to use the full path to the bash script.
 
 ## My generic, all-purpose folder structure
 
