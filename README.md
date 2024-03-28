@@ -120,7 +120,7 @@ Upon first run the SQlite database will be generated. The default storage of the
 DB_FILE=$HOME"/.projects.db"
 
 SQL_CREATE_TABLE="CREATE TABLE projects (
-                    uid TEST PRIMARY KEY,           <- unique identified
+                    uid TEST PRIMARY KEY,           <- unique identifier
                     name TEXT NOT NULL,             <- name of the project
                     description TEXT,               <- a short and witty description
                     tags TEXT,                      <- descriptive tags
