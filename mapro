@@ -41,24 +41,24 @@ while true; do
     script_name=$1
 
     case $script_name in
-        create )
-            $scripts_dir"/create" "${@:2}"
+       		 create )
+            		$scripts_dir"/scripts/create" "${@:2}"
 			break
-            ;;
-        check )
-            $scripts_dir"/check" "${@:2}"
+            		;;
+        	check )
+            		$scripts_dir"/scripts/check" "${@:2}"
 			break
-            ;;
+            		;;
 		edit )
-			$scripts_dir"/edit" "${@:2}"
+			$scripts_dir"/scripts/edit" "${@:2}"
 			break
 			;;
 		remove )
-			$scripts_dir"/remove" "${@:2}"
+			$scripts_dir"/scripts/remove" "${@:2}"
 			break
 			;;
 		status )
-			$scripts_dir"/status" "${@:2}"
+			$scripts_dir"/scripts/status" "${@:2}"
 			break
 			;;
         -h | --help | help )
