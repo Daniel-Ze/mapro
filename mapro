@@ -34,6 +34,8 @@ helpFunction() {
 	echo -e "\t\t  (e.g. rename, move, change project status)"
 	echo -e "\t${G}remove${NC}\t- removes an existing project"
 	echo -e "\t\t  (completely deletes everything)"
+	echo -e "\t${G}activate${NC}\t- lets you edit contents in"
+	echo -e "\t\t  the project folder."
 	echo -e ""
 }
 
@@ -41,14 +43,14 @@ while true; do
     script_name=$1
 
     case $script_name in
-       		 create )
-            		$scripts_dir"/scripts/create" "${@:2}"
+        create )
+            $scripts_dir"/scripts/create" "${@:2}"
 			break
-            		;;
-        	check )
-            		$scripts_dir"/scripts/check" "${@:2}"
+            ;;
+        check )
+            $scripts_dir"/scripts/check" "${@:2}"
 			break
-            		;;
+            ;;
 		edit )
 			$scripts_dir"/scripts/edit" "${@:2}"
 			break
@@ -59,6 +61,10 @@ while true; do
 			;;
 		status )
 			$scripts_dir"/scripts/status" "${@:2}"
+			break
+			;;
+		activate )
+			$scripts_dir"/scripts/activate" "${@:2}"
 			break
 			;;
         -h | --help | help )
