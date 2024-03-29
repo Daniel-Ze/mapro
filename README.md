@@ -200,6 +200,8 @@ Initialized empty Git repository in /Users/daniel/Documents/create_project/test/
 
 Changing direcotories to add notes or todos can be tedious if you have to jump between projects. That's why I wrote mapro activate get to the project folders more easily.
 
+![](https://github.com/Daniel-Ze/mapro/blob/main/img/mapro_activate.gif)
+
 ```bash
 (base) 💻 daniel:create_project $ mapro activate
 
