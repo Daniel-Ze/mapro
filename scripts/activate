@@ -1,0 +1,146 @@
+#!/bin/bash
+
+# Move to indicated project directory
+
+R='\033[0;31m'
+G='\033[0;32m'
+Y='\033[0;33m'
+B='\033[0;34m'
+NC='\033[0m'
+
+info=${Y}"   [info]"${NC}
+error=${R}"  [error]"${NC}
+warn=${Y}"[warning]"${NC}
+
+CHECK=${G}'\xE2\x9C\x94'${NC}
+
+DB_FILE=$HOME"/.projects.db"
+RC_FILE=$(dirname $(readlink -f "$0"))"/.bashrc_mapro"
+BASH_PROFILE=$HOME"/.bash_profile"
+BASHRC=$HOME"/.bashrc"
+
+helpFunction() {
+    echo ""
+    echo -e "This script let's you edit your projects data."
+    echo ""
+    echo -e "Usage: ${G}$(basename -- "$0")${NC} -p <project name>"
+	echo -e "\t-p: project name"
+	echo -e "\t-n: open project NOTES.md for editing"
+	echo -e "\t-t: open project TODO.md for editing"
+	echo -e "\t-d: cd into project directory"
+	echo -e "\t-e: change the editor <vim | nano>"
+    echo ""
+    exit 0
+}
+
+intializeConfig() {
+	
+	read -p "Which default editor (vim, nano)? " editor
+	if [ $editor = "vim" ] || [ $editor = "nano" ]; then
+		SQL_CREATE_TABLE="CREATE TABLE config (
+    	                    version TEXT NOT NULL,
+    	                    editor TEXT NOT NULL
+    	                );"
+		SQL_WRITE_TO_TABLE="INSERT INTO config (
+							  version,
+							  editor
+							) VALUES (
+							  'version 0.01alpha',
+							  '$editor'
+							);"
+		sqlite3 "$DB_FILE" "$SQL_CREATE_TABLE"
+		sqlite3 "$DB_FILE" "$SQL_WRITE_TO_TABLE"
+	else
+		echo -e "$error\tPlease chose nano or vim."
+	fi
+}	
+
+changeDirectory() {
+    parameterP="$1"
+    dir=$(sqlite3 "$DB_FILE" "SELECT location FROM projects WHERE name = '$parameterP';")
+    if [ ! -d "$dir" ]; then
+        echo -e "$error\tProject directory '$dir' not found."
+        exit 1
+    fi
+	if [ -e $BASH_PROFILE ] && [ ! -e $BASHRC ]; then
+		cat $BASH_PROFILE > $RC_FILE
+	elif [ ! -e $BASH_PROFILE ] && [ -e $BASHRC ]; then
+		cat $BASH_PROFILE > $RC_FILE
+	else
+		echo -e "$warn\tNo ~/.bash_profile or ~/.bashrc. The subshell might not have all functionality."
+	fi
+
+	echo 'export PS1="(Project: '$parameterP') \[\e[0;93m\] mapro\[\e[m\] : "' >> $RC_FILE
+	
+    cd "$dir" 
+	echo -e "$info\tYou are now in: $PWD"
+	echo -e "$info\tExit subshell with 'CTRL + D' or type 'exit'"
+	exec bash --rcfile $RC_FILE
+}
+
+exists=$(sqlite3 "$DB_FILE" "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='config';")
+
+if [ "$exists" -eq 0 ]; then
+	echo -e ""
+    echo -e "$warn\tThe config table does not exist in the database." \
+			"Creating it now."
+	echo -e "$warn\tThis should happen only once."
+	echo -e ""
+	intializeConfig
+fi
+
+take_notes=false
+take_todo=false
+
+# Parse input
+while getopts "hp:ntde" opt
+do
+    case "$opt" in
+        p ) 
+            parameterP="${OPTARG}"
+            ;;
+		e )
+			parameterE="${OPTARG}"
+			editor=$(sqlite3 $DB_FILE "SELECT editor FROM config;")
+			if [[ -n $editor ]];
+			then
+				echo -e "$info\tCurrent editor $editor. Want to change?"
+				read -p "Change editor (y/n) " answer
+				if [[ $answer =~ ^[Yy]$ ]];
+				then
+					read -p "Enter your editor of choice: " editor_new
+					sqlite3 $DB_FILE "UPDATE config SET editor = '$editor_new' WHERE editor = '$editor';"
+					echo -e "$info\tNew editor: $editor_new"
+				fi
+			fi
+			exit 0
+			;;
+		d )
+			changeDirectory "$parameterP"
+			;;
+		n )
+			dir=$(sqlite3 "$DB_FILE" "SELECT location FROM projects WHERE name = '$parameterP';")
+			notes=$dir"NOTES.md"
+			vim $notes
+			;;
+		t )
+			dir=$(sqlite3 "$DB_FILE" "SELECT location FROM projects WHERE name = '$parameterP';")
+			todo=$dir"TODO.md"
+			vim $todo
+			;;
+        h )
+            helpFunction
+            ;;
+        * ) 
+            helpFunction
+            ;;
+        ? ) 
+            helpFunction
+            ;;
+    esac
+done
+
+if [ $OPTIND -eq 1 ]
+then
+    helpFunction
+fi
