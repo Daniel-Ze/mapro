@@ -134,6 +134,8 @@ sqlite3 "$DB_FILE" "$SQL_CREATE_TABLE"
 
 The following part of the script will guide you through the generation of the project folder structure:
 
+![](https://github.com/Daniel-Ze/mapro/blob/main/img/mapro_create_project.gif)
+
 1. Where are you. Cofirm that you want to generate a new project here:
 
 ```bash
