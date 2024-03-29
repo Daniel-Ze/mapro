@@ -83,21 +83,22 @@ if [[ "$parameterL" == "true" ]]; then
 	buffer=""
 	while read l;
 	do 
+		uid=$(echo $l | cut -f1 -d'|')
 		status=$(echo $l | cut -f6 -d'|')
 		name=$(echo $l | cut -f2 -d'|')
 		dir=$(echo $l | cut -f5 -d'|')
 		if [[ $status == "active" ]];
 		then
-			buffer+="${G}   [active]${NC}\t${B}$name${NC}\t$dir\n"
+			buffer+="${G}   [active]${NC}\t$uid\t${B}$name${NC}\t$dir\n"
 		elif [[ $status == "suspended" ]];
 		then
-			buffer+="${Y}[suspended]${NC}\t${B}$name${NC}\t$dir\n"
+			buffer+="${Y}[suspended]${NC}\t$uid\t${B}$name${NC}\t$dir\n"
 		elif [[ $status == "complete" ]];
 		then
-			buffer+="${Y} [complete]${NC}\t${B}$name${NC}\t$dir\n"
+			buffer+="${Y} [complete]${NC}\t$uid\t${B}$name${NC}\t$dir\n"
 		fi
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects;")
-	echo -e ${buffer} | sort | less -Sr
+	sort -k3,3 -t '\t' < <(echo -e ${buffer}) | less -Sr
 	exit
 fi
 
@@ -107,11 +108,12 @@ if [[ "$parameterA" == "true" ]]; then
 	
 	while read l;
 	do
+		uid=$(echo $l | cut -f1 -d'|')
 		project=$(echo $l | cut -f2 -d'|')
 		dir=$(echo $l | cut -f5 -d'|')
-		buffer+="${G}   [active]${NC}\t${B}$project${NC}\t$dir\n"
+		buffer+="${G}   [active]${NC}\t$uid\t${B}$project${NC}\t$dir\n"
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE status = 'active';")
-	echo -e ${buffer} | sort | less -Sr
+	sort -k1,3 -t '\t' < <(echo -e ${buffer}) | less -Sr
 	exit
 fi
 
@@ -120,18 +122,20 @@ if [[ "$parameterG" == "true" ]]; then
 	buffer=""
 	buffer_has_changes=""
 	up_to_date=true
-	while read -r l; do
+	while read -r l; 
+	do
+		uid=$(echo $l | cut -f1 -d'|')
 		project=$(echo $l | cut -f2 -d'|')
 		dir=$(echo $l | cut -f5 -d'|')
 		if ! git -C $dir diff --exit-code > /dev/null; then 
-			buffer+="${R}has-changes${NC}\t${B}$project${NC}\t$dir\n"
+			buffer+="${R}has-changes${NC}\t$uid\t${B}$project${NC}\t$dir\n"
 			buffer_has_changes+="$dir\n"
 			up_to_date=false
 		else 
-			buffer+="${G}up-to-date${NC} $CHECK\t${B}$project${NC}\t$dir\n"
+			buffer+="${G}up-to-date${NC} $CHECK\t$uid\t${B}$project${NC}\t$dir\n"
 		fi
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE status = 'active'";)
-	echo -e ${buffer} | sort | less -Sr
+	sort -k1,3 -t '\t' < <(echo -e ${buffer}) | less -Sr
 	if [ $up_to_date = false ];
 	then
 		while true; do
