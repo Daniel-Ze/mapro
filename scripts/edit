@@ -34,6 +34,7 @@ helpFunction() {
 	echo -e "\t-m: New project location (no spaces allowed)"
 	echo -e "\t-s: Change the project status (active, complete, suspended)"
 	echo -e "\t-d: Dry running to see whats about to happen."
+	echo -e "\t-u: instead of -p to supply uid"
     echo ""
     exit 0
 }
@@ -43,13 +44,30 @@ parameterD=false
 rename=false
 move=false
 status=false
+project_name=false
+project_uid=false
 
-while getopts "p:n:m:s:dh" opt
+while getopts "p:u:n:m:s:dh" opt
 do
     case "$opt" in
         p ) 
             parameterP="$OPTARG"
+			read -a array <<< $(sqlite3 "$DB_FILE" "SELECT name FROM projects WHERE name = '$parameterP';")
+			declare -a count
+			for item in "${array[@]}"; do
+				((count[$item]++))
+			done
+			if [ ! ${count[0]} = 1 ];then
+				echo -e "$error\tThere are multiple projects in the database" \
+				 		"with the name $parameterP. Try using the 'uid'."
+				exit 1
+			fi
+			project_name=true
             ;;
+		u )
+			parameterU="$OPTARG"
+			project_uid=true
+			;;
 		m )
 			parameterM="$OPTARG"
 			move=true
@@ -75,23 +93,32 @@ do
     esac
 done
 
+# Check if there is input
 if [ $OPTIND -eq 1 ]
 then
     helpFunction
 fi
 
-if [ -z $parameterP ];
+if [[ -n $parameterP ]]; 
 then
-	echo -e "$error\tNo project name. Quitting."
-	exit 1
+	check_db_p=$(sqlite3 "$DB_FILE" "SELECT uid FROM projects WHERE name = '$parameterP';")
+	SQL_QUERY="SELECT * FROM projects WHERE uid = '$check_db_p';"
+	if [[ ! -n "$check_db_p" ]]; 
+	then
+		echo -e "$error\tProject does not exist. Quitting."
+		exit 1
+	fi
 fi
 
-check_db=$(sqlite3 "$DB_FILE" "SELECT name FROM projects WHERE name = '$parameterP';")
-
-if [[ ! -n "$check_db" ]]; 
+if [[ -n $parameterU ]];
 then
-	echo -e "$error\tProject does not exist. Quitting."
-	exit 1
+	check_db_u=$(sqlite3 "$DB_FILE" "SELECT uid FROM projects WHERE uid = '$parameterU';")
+	SQL_QUERY="SELECT * FROM projects WHERE uid = '$check_db_u';"
+	if [[ ! -n "$check_db_u" ]]; 
+	then
+		echo -e "$error\tProject does not exist. Quitting."
+		exit 1
+	fi
 fi
 
 if [[ "$rename" = true ]]; 
@@ -118,10 +145,15 @@ then
 
 				echo -e "$info\tOld dir: $dir"
 				echo -e "$info\tNew dir: $new_dir\n"
+				if [ $project_name = true ]; then
 				echo -e "$info\tCommand: ${G}sqlite3${NC} $DB_FILE \"UPDATE" \
 						"projects SET name = '$parameterN', location = " \
-						"'$new_dir' WHERE name = '$parameterP';\""
-
+						"'$new_dir' WHERE uid = '$check_db_p';\""
+				elif [ $project_uid = true ]; then
+				echo -e "$info\tCommand: ${G}sqlite3${NC} $DB_FILE \"UPDATE" \
+						"projects SET name = '$parameterN', location = " \
+						"'$new_dir' WHERE uid = '$check_db_u';\""
+				fi
 				echo -e "$info\tCommand: ${G}mv${NC} $dir $new_dir" 
 				echo -e "$info\tCommand: ${G}echo${NC} \"old_name: " \
 						"$parameterP\" >> $new_dir.project_status"
@@ -133,7 +165,11 @@ then
 				echo -e "$info\tRenaming and moving for real"
 				echo -e "$info\tOld dir: $dir"
 				echo -e "$info\tNew dir: $new_dir"
-				sqlite3 $DB_FILE "UPDATE projects SET name = '$parameterN', location = '$new_dir' WHERE name = '$parameterP';"
+				if [ $project_name = true ]; then
+					sqlite3 $DB_FILE "UPDATE projects SET name = '$parameterN', location = '$new_dir' WHERE uid = '$check_db_p';"
+				elif [ $project_uid = true ]; then
+					sqlite3 $DB_FILE "UPDATE projects SET name = '$parameterN', location = '$new_dir' WHERE uid = '$check_db_u';"
+				fi
 				mv $dir $new_dir
 
 				echo "old_name: $parameterP" >> $new_dir".project_status"
@@ -142,7 +178,7 @@ then
 					$new_dir".project_status"
 			fi
 		fi
-	done < <(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE name = '$parameterP';")
+	done < <(sqlite3 "$DB_FILE" "$SQL_QUERY")
 	echo -e "$info\tFinished renaming. $CHECK"
 	exit 0
 fi
@@ -155,6 +191,7 @@ then
 	do 
 		project=$(echo $l | cut -f2 -d'|')
 		dir=$(echo $l | cut -f5 -d'|')
+		current_status=$(echo $l | cut -f6 -d'|')
 		
 		if ! git -C $dir diff --exit-code > /dev/null;
 		then
@@ -162,21 +199,29 @@ then
 			echo -e "$error\t\tgit -C <dir> add ."
 			echo -e "$error\t\tgit -C <dir> commit '<message>'"
 			echo -e "$error\tQuitting."
+			exit 1
 		else
-			current_status=$(sqlite3 $DB_FILE "SELECT status FROM projects WHERE name = '$project';")
+			# Check the current status
 			if [ $parameterS = $current_status ];
 			then
+				# If the same supplied with -s nothing to do
 				echo -e "$info\tProject already marked as" \
 						"${G}$parameterS${NC}. Nothing to do. $CHECK"
 				exit 0
 			fi
+			# Check which status was supplied and do the things
 			case $parameterS in
+				# Change to active; nothing much to do
 				active )
 					echo -e "$info\tProject status will change from" \
 							"$current_status to ${G}$parameterS${NC}"
 					sqlite3 $DB_FILE "UPDATE projects SET status = '$parameterS' WHERE name = '$parameterP';"
 					;;
 				
+				# Change to complete:
+				#  - changes status to complete
+				#  - adds a directory final with a .tar.gz file of all files
+				#  - creates an immutable git snapshot
 				complete )
 					echo -e "$info\tProject status will change from" \
 							"$current_status to ${G}$parameterS${NC}"
@@ -203,6 +248,7 @@ then
 					sed -i 's/active/complete/g' .project_status
 					;;
 				
+				# Change to status to suspended; experimental
 				suspended )
 					echo -e "$info\tProject status will change from" \
 							"$current_status to ${G}$parameterS${NC}"
@@ -210,7 +256,7 @@ then
 					;;
 			esac
 		fi
-	done < <(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE name = '$parameterP';")
+	done < <(sqlite3 "$DB_FILE" "$SQL_QUERY")
 	echo -e "$info\tFinished changing status. $CHECK"
 	exit 0
 else
