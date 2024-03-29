@@ -10,7 +10,7 @@ Automating half of the things that I mentioned above is already a huge help and 
 
 ## Dependencies
 
-The scripts in this repository are all written in bash. This might limit them to UNIX systems.
+The scripts are limited to Unix operating systems.\
 
 Tested and developed on:
 
@@ -25,18 +25,18 @@ Tested and developed on:
 - [SQlite](https://www.sqlite.org/index.html) - managing the project database
   - version 3.37.0
 
-`bash`, `GIT` and `SQlite3` should be preinstalled on most of the unix systems.
+ `bash`, `GIT` and `SQlite3` should be preinstalled on most of the unix systems.
 
 ## Install 
 
-I would recommoned to link the helper script (`mapro`) to one of the `bin/` directories in your path e.g. `~/.local/bin` on MacOS. Following is an example of how I have it setup:
+I would recommoned to link the helper scripts to one of the `bin/` directories in your path e.g. `~/.local/bin` on MacOS. Following is an example of how I have it setup:
 
 ```bash
 (base) 💻 daniel:~ $ cd ~/.local/bin
 (base) 💻 daniel:bin $ ln -s /Users/daniel/Documents/create_project/mapro ./
 ```
 
-Make sure to use the full path to the bash script.
+Make sure to use the full path to the bash scripts.
 
 ## My generic, all-purpose folder structure
 
@@ -96,7 +96,7 @@ Available helper scripts:
         create  - creates a new project with folder structure
                   and files to keep track of things.
         check   - overview of created projects to keep track
-                  of what you are doing
+                  of what you're doing
         edit    - editing an existing project
                   (e.g. rename, move, change project status)
         remove  - removes an existing project
@@ -120,7 +120,7 @@ Upon first run the SQlite database will be generated. The default storage of the
 DB_FILE=$HOME"/.projects.db"
 
 SQL_CREATE_TABLE="CREATE TABLE projects (
-                    uid TEST PRIMARY KEY,           <- unique identifier
+                    uid TEST PRIMARY KEY,           <- unique identified
                     name TEXT NOT NULL,             <- name of the project
                     description TEXT,               <- a short and witty description
                     tags TEXT,                      <- descriptive tags
@@ -138,7 +138,7 @@ The following part of the script will guide you through the generation of the pr
 
 ```bash
 (base) 💻 daniel:create_project $ mapro create -p test
- [info] You are in:     /Users/daniel/Documents/create_project/
+ [info] You're in:      /Users/daniel/Documents/create_project/
  [info] Project name:   test
  [info] Project dir:    /Users/daniel/Documents/create_project/test/
 
@@ -193,6 +193,48 @@ Initialized empty Git repository in /Users/daniel/Documents/create_project/test/
 
  [info] Done. ✔
  ```
+
+## Editing files in project folders
+
+Changing direcotories to add notes or todos can be tedious if you have to jump between projects. That's why I wrote mapro activate get to the project folders more easily.
+
+```bash
+(base) 💻 daniel:create_project $ mapro activate
+
+This script let's you edit your projects data.
+
+Usage: activate -p <project name>
+        -p: project name
+        -n: open project NOTES.md for editing
+        -t: open project TODO.md for editing
+        -d: cd into project directory
+        -e: change the editor <vim | nano>
+```
+
+- Easily edit `NOTES.md` and `TODO.md` of created projects:
+
+```bash
+(base) 💻 daniel:create_project $ mapro activate -p test -n
+```
+
+This will open the `NOTES.md` file in your editor of choice (of course that's vim).
+
+```bash
+(base) 💻 daniel:create_project $ mapro activate -p test -t
+```
+
+This will let you add todos to `TODO.md`.
+
+If you want to do more things than adding notes or todos you can `activate` the project directory in a subshell:
+
+```bash
+(base) 💻 daniel:create_project $ mapro activate -p test -d
+   [info]       You are now in: /Users/daniel/Documents/create_project/test
+   [info]       Exit subshell with 'CTRL + D' or type 'exit'
+(Project: test)  mapro : 
+```
+
+Make sure to `exit` the subshell after finishing your editing. I tried to make it obvious for the user that a different `shell` has been started by adjusting the `$PS1` variable.
 
 ## Keeping track of your projects
 
@@ -351,5 +393,3 @@ Dry-run, the following will be executed when running without -d:
  [info] Command:        sqlite3 /Users/daniel/.projects.db "DELETE FROM projects WHERE name = 'test';"
 ```
 
-
-<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><a property="dct:title" rel="cc:attributionURL" href="https://github.com/Daniel-Ze/mapro">mapro</a> by <a rel="cc:attributionURL dct:creator" property="cc:attributionName" href="https://github.com/Daniel-Ze">Daniel-Ze</a> is licensed under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">Attribution-NonCommercial-ShareAlike 4.0 International<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/nc.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1"></a></p>
