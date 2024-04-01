@@ -93,14 +93,15 @@ usage:  mapro <function> -h
 
 Available helper scripts:
 
-        create  - creates a new project with folder structure
-                  and files to keep track of things.
-        check   - overview of created projects to keep track
-                  of what you're doing
-        edit    - editing an existing project
-                  (e.g. rename, move, change project status)
-        remove  - removes an existing project
-                  (completely deletes everything)
+        create   - creates a new project with folder structure
+                   and files to keep track of things.
+        check    - overview of created projects to keep track
+                   of what you're doing
+        edit     - editing an existing project
+                   (e.g. rename, move, change project status)
+        remove   - removes an existing project
+                   (completely deletes everything)
+        activate - lets you edit contents in the project folder.
 ```
 
 The first thing you might want to do is creating your first project folder. Naviagate to the directory in which the project will be stored and execute `mapro create`. 
