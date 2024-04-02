@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Move to indicated project directory
+# Move to indicated project directory or simply edit NOTES.md / TODO.md from
+# indicated project
 
 R='\033[0;31m'
 G='\033[0;32m'
@@ -34,19 +35,21 @@ helpFunction() {
 }
 
 intializeConfig() {
-	
 	read -p "Which default editor (vim, nano)? " editor
 	if [ $editor = "vim" ] || [ $editor = "nano" ]; then
 		SQL_CREATE_TABLE="CREATE TABLE config (
     	                    version TEXT NOT NULL,
-    	                    editor TEXT NOT NULL
+    	                    editor TEXT NOT NULL,
+							status TEXT NOT NULL
     	                );"
 		SQL_WRITE_TO_TABLE="INSERT INTO config (
 							  version,
-							  editor
+							  editor,
+							  status
 							) VALUES (
 							  'version 0.01alpha',
-							  '$editor'
+							  '$editor',
+							  'current'
 							);"
 		sqlite3 "$DB_FILE" "$SQL_CREATE_TABLE"
 		sqlite3 "$DB_FILE" "$SQL_WRITE_TO_TABLE"
@@ -120,8 +123,9 @@ do
 			;;
 		n )
 			dir=$(sqlite3 "$DB_FILE" "SELECT location FROM projects WHERE name = '$parameterP';")
+			editor=$(sqlite3 "$DB_FILE" "SELECT editor FROM config;")
 			notes=$dir"NOTES.md"
-			vim $notes
+			$editor $notes
 			;;
 		t )
 			dir=$(sqlite3 "$DB_FILE" "SELECT location FROM projects WHERE name = '$parameterP';")
