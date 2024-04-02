@@ -78,7 +78,7 @@ do
     esac
 done
 
-# List all projects
+# Print all projects
 if [[ "$parameterL" == "true" ]]; then
 	buffer=""
 	while read l;
@@ -98,11 +98,11 @@ if [[ "$parameterL" == "true" ]]; then
 			buffer+="${Y} [complete]${NC}\t$uid\t${B}$name${NC}\t$dir\n"
 		fi
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects;")
-	sort -k3,3 -t '\t' < <(echo -e ${buffer}) | less -Sr
+	sort -n -k3,3 -t '\t' < <(echo -e ${buffer}) | less -SR
 	exit
 fi
 
-# List all active projects
+# Print all active projects
 if [[ "$parameterA" == "true" ]]; then
 	buffer=""
 	
@@ -113,7 +113,7 @@ if [[ "$parameterA" == "true" ]]; then
 		dir=$(echo $l | cut -f5 -d'|')
 		buffer+="${G}   [active]${NC}\t$uid\t${B}$project${NC}\t$dir\n"
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE status = 'active';")
-	sort -k1,3 -t '\t' < <(echo -e ${buffer}) | less -Sr
+	sort -k3,3 -t '\t' < <(echo -e ${buffer}) | less -SR
 	exit
 fi
 
@@ -135,7 +135,7 @@ if [[ "$parameterG" == "true" ]]; then
 			buffer+="${G}up-to-date${NC} $CHECK\t$uid\t${B}$project${NC}\t$dir\n"
 		fi
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE status = 'active'";)
-	sort -k1,3 -t '\t' < <(echo -e ${buffer}) | less -Sr
+	sort -k1,3 -t '\t' < <(echo -e ${buffer}) | less -SR
 	if [ $up_to_date = false ];
 	then
 		while true; do
@@ -159,7 +159,7 @@ if [[ "$parameterG" == "true" ]]; then
 	exit 0
 fi
 
-
+# Print projects that match a tag (fuzzy)
 if [[ $search_tag == "true" ]];
 then
 	buffer=""
@@ -168,42 +168,45 @@ then
 	do
 		while read l;
 		do
+			uid=$(echo $l | cut -f1 -d'|')
 			status=$(echo $l | cut -f6 -d'|')
 			name=$(echo $l | cut -f2 -d'|')
 			dir=$(echo $l | cut -f5 -d'|')
 			entry_tags=$(echo $l | cut -f4 -d'|')
 			if [[ $status == "active" ]];
 			then
-				buffer+="${G}   [active]${NC}\t${B}$name${NC}\t${Y}$entry_tags${NC}\t$dir\n"
-			elif [[ $status == "finished" ]];
+				buffer+="${G}   [active]${NC}\t$uid\t${B}$name${NC}\t${Y}$entry_tags${NC}\t$dir\n"
+			elif [[ $status == "complete" ]];
 			then
-				buffer="${Y}$[finished]${NC}\t${B}$name${NC}\t${Y}$tag{NC}\t$dir\n"
+				buffer="${Y}$[finished]${NC}\t$uid\t${B}$name${NC}\t${Y}$tag{NC}\t$dir\n"
 			fi
 		done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE tags LIKE '%$tag%';")
 	done
-	echo -e ${buffer} | sort | uniq | less -Sr
+	echo -e ${buffer} | sort | uniq | less -SR
 	exit
 fi
 
+# Print projects that match input (fuzzy)
 if [[ $name == "true" ]];
 then
 	buffer=""
 
 	while read l;
 	do
+		uid=$(echo $l | cut -f1 -d'|')
 		status=$(echo $l | cut -f6 -d'|')
 		name=$(echo $l | cut -f2 -d'|')
 		dir=$(echo $l | cut -f5 -d'|')
 		entry_tags=$(echo $l | cut -f4 -d'|')
 		if [[ $status == "active" ]];
 		then
-			buffer+="${G}   [active]${NC}\t${B}$name${NC}\t${Y}$entry_tags${NC}\t$dir\n"
-		elif [[ $status == "finished" ]];
+			buffer+="${G}   [active]${NC}\t$uid\t${B}$name${NC}\t${Y}$entry_tags${NC}\t$dir\n"
+		elif [[ $status == "complete" ]];
 		then
-			buffer="${Y}$[finished]${NC}\t${B}$name${NC}\t${Y}$tag{NC}\t$dir\n"
+			buffer="${Y}$[finished]${NC}\t$uid\t${B}$name${NC}\t${Y}$tag{NC}\t$dir\n"
 		fi
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE name LIKE '%$parameterN%';")
-	echo -e ${buffer} | sort | less -Sr
+	echo -e ${buffer} | sort | less -SR
 	exit
 fi
 
@@ -237,13 +240,18 @@ then
 	fi
 fi
 
+# If nothing is supplied this is the standard output
+buffer=""
+
 num_all_projects=$(sqlite3 "$DB_FILE" "SELECT * FROM projects;" | wc -l)
 num_active_projects=$(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE status = 'active';" | wc -l)
 num_suspended_projects=$(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE status = 'suspended';" | wc -l)
 num_complete_projects=$(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE status = 'complete';" | wc -l)
 
-echo -e "$info\tTotal number of projects:\t"$num_all_projects
-echo -e "\t___________________________________"
-echo -e "$info\tActive projects:\t\t"$num_active_projects
-echo -e "$info\tSuspended projects:\t\t"$num_suspended_projects
-echo -e "$info\tCompleted projects:\t\t"$num_complete_projects
+buffer+="$info\tTotal number of projects:\t"$num_all_projects"\n"
+buffer+="\t___________________________________\n"
+buffer+="$info\tActive projects:\t\t"$num_active_projects"\n"
+buffer+="$info\tSuspended projects:\t\t"$num_suspended_projects"\n"
+buffer+="$info\tCompleted projects:\t\t"$num_complete_projects"\n"
+
+echo -e $buffer | less -SR 
