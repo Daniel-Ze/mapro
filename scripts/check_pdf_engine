@@ -1,0 +1,20 @@
+#!/bin/bash
+
+echo "Available PDF engines:"
+echo "----------------------"
+
+# List of PDF engines supported by pandoc
+pdf_engines=("wkhtmltopdf" "weasyprint" "pagedjs-cli" "prince" "pdflatex" "lualatex" "xelatex" "latexmk" "tectonic" "pdfroff" "typst" "context")
+
+# If none of the PDF engines are found
+if ! command -v "${pdf_engines[@]}" &>/dev/null; then
+	echo "No PDF engines found. Please install one of the following: ${pdf_engines[*]}"
+	exit 1
+else
+	for engine in "${pdf_engines[@]}"
+	do
+    		if command -v "$engine" &>/dev/null; then
+        		echo "$engine"
+    		fi
+	done
+fi

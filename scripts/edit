@@ -17,27 +17,60 @@ CHECK=${G}'\xE2\x9C\x94'${NC}
 # Database for projects
 DB_FILE=$HOME"/.projects.db"
 
-# Function to print the usage
+
 helpFunction() {
-    echo ""
-    echo -e "This script will edit a project. This includes renaming,"
+	# Function to print the usage and quit
+	
+	echo ""
+    	echo -e "This script will edit a project. This includes renaming,"
 	echo -e "moving to new directory and changing the status"
-    echo ""
-    echo -e "Usage: ${G}$(basename -- "$0")${NC} -p <old_project_name> -n" \
-			"<new_project_name>"
-	echo -e "Usage: ${G}$(basename -- "$0")${NC} -p <project_name> -m" \
-			"</path/to/new/location>"
-	echo -e "Usage: ${G}$(basename -- "$0")${NC} -p <project_name> -s" \
-			"<active | complete | suspended>"
-	echo -e "\t-p: Project to be renamed."
+    	echo ""
+    	echo -e "Usage: ${G}$(basename -- "$0")${NC} -p / -u <project_name> / <uid>" \
+			" -n <new_project_name>"
+	echo -e "Usage: ${G}$(basename -- "$0")${NC} -p / -u <project_name> / <uid>" \
+			" -m </path/to/new/location>"
+	echo -e "Usage: ${G}$(basename -- "$0")${NC} -p / -u <project_name> / <uid>" \
+			" -s <active | complete | suspended>"
+	echo -e "Usage: ${G}$(basename -- "$0")${NC} -p / -u <project_name> / <uid>" \
+			" -c <html | pdf>"
+	echo -e "\t-p/-u: Project name / Project uid to be edited."
 	echo -e "\t-n: New project name (no spaces allowed)"
 	echo -e "\t-m: New project location (no spaces allowed)"
 	echo -e "\t-s: Change the project status (active, complete, suspended)"
 	echo -e "\t-d: Dry running to see whats about to happen."
-	echo -e "\t-u: instead of -p to supply uid"
+	echo -e "\t-c: Convert NOTES.md and README.md to <pdf|html> (requires pandoc)"
     echo ""
     exit 0
 }
+
+
+pandocConvert() {
+	# Function to convert NOTES.md to README.md to either pdf or html 
+	
+	project_entry=$(sqlite3 "$DB_FILE" "$SQL_QUERY")
+	dir=$(echo $project_entry | cut -f5 -d '|')
+	name=$(echo $project_entry | cut -f2 -d '|')
+
+	echo -e "$info\tConverting NOTES.md and README.md of project ${B}$name${NC} to $parameterC."
+	# NOTES.md
+	pandoc -V geometry:margin=2cm \
+		-s \
+		--highlight-style=tango \
+		--metadata title="Project: $name" \
+		-f markdown \
+		-t $parameterC \
+		-o $dir"/NOTES."$parameterC $dir"/NOTES.md"
+	# README.md
+	pandoc -V geometry:margin=2cm \
+		-s \
+		--highlight-style=tango \
+		--metadata title="Project: $name" \
+		-f markdown \
+		-t $parameterC \
+		-o $dir"/README."$parameterC $dir"/README.md"
+	exit 0
+}
+
 
 # Input check
 parameterD=false
@@ -46,12 +79,32 @@ move=false
 status=false
 project_name=false
 project_uid=false
+convert_pdf=false
+convert_html=false
 
-while getopts "p:u:n:m:s:dh" opt
+
+# Parse the commandline input
+while getopts "c:p:u:n:m:s:dh" opt
 do
     case "$opt" in
-        p ) 
-            parameterP="$OPTARG"
+		c ) 
+    			if ! which pandoc > /dev/null; then
+	   			echo -e "$error\tPandoc required but not found in path."
+				exit 1
+    			else
+	    			parameterC="$OPTARG"
+				if [ $parameterC = "pdf" ]; then	
+					convert_pdf=true
+				elif [ $parameterC = "html" ]; then
+					convert_html=true
+				else
+					echo -e "$error\t$parameterC conversion not supported."
+				exit 1
+				fi
+    			fi
+			;;
+		p )
+			parameterP="$OPTARG"
 			read -a array <<< $(sqlite3 "$DB_FILE" "SELECT name FROM projects WHERE name = '$parameterP';")
 			declare -a count
 			for item in "${array[@]}"; do
@@ -59,11 +112,11 @@ do
 			done
 			if [ ! ${count[0]} = 1 ];then
 				echo -e "$error\tThere are multiple projects in the database" \
-				 		"with the name $parameterP. Try using the 'uid'."
+		 			"with the name $parameterP. Try using the 'uid'."
 				exit 1
 			fi
 			project_name=true
-            ;;
+			;;
 		u )
 			parameterU="$OPTARG"
 			project_uid=true
@@ -72,8 +125,8 @@ do
 			parameterM="$OPTARG"
 			move=true
 			;;
-		n ) 
-		    parameterN="$OPTARG"
+		n )
+			parameterN="$OPTARG"
 			rename=true
 			;;
 		d )
@@ -83,9 +136,9 @@ do
 			parameterS="$OPTARG"
 			status=true
 			;;
-        h ) 
-		    helpFunction
-            ;;
+		h ) 
+			helpFunction
+            			;;
 		\? ) 
 			echo "Invalid option: -$OPTARG" 
 			helpFunction
@@ -93,12 +146,23 @@ do
     esac
 done
 
-# Check if there is input
-if [ $OPTIND -eq 1 ]
+
+# Check if something was parsed from the commandline
+if [ $OPTIND -eq 1 ];
 then
     helpFunction
 fi
 
+
+# Check if project name or uid was given
+if [[ ! -n $parameterP ]] && [[ ! -n $parameterU ]];
+then
+	echo -e "$error\tEither project name or uid needed."
+	exit 1
+fi
+
+
+# If a project name was given check if it exists and get its uid
 if [[ -n $parameterP ]]; 
 then
 	check_db_p=$(sqlite3 "$DB_FILE" "SELECT uid FROM projects WHERE name = '$parameterP';")
@@ -110,6 +174,8 @@ then
 	fi
 fi
 
+
+# If a project uid was given check if it exists
 if [[ -n $parameterU ]];
 then
 	check_db_u=$(sqlite3 "$DB_FILE" "SELECT uid FROM projects WHERE uid = '$parameterU';")
@@ -121,6 +187,8 @@ then
 	fi
 fi
 
+
+# Rename a project
 if [[ "$rename" = true ]]; 
 then
 	while read l; 
@@ -137,7 +205,6 @@ then
 			exit 1
 		else
 			new_dir=$(dirname $dir)"/"$parameterN"/"
-
 			if [[ $parameterD == "true" ]];
 			then
 				echo -e "${Y}Dry-run, the following will be executed when" \
@@ -183,9 +250,40 @@ then
 	exit 0
 fi
 
-if [ "$status" = true ] && [ $parameterS = "active" ] || \
-						   [ $parameterS = "complete" ] || \
-						   [ $parameterS = "suspended" ];
+
+# Move a project
+if [[ $move = true ]];
+then
+	project_entry=$(sqlite3 "$DB_FILE" "$SQL_QUERY")
+	name=$(echo $project_entry | cut -f2 -d "|")
+	dir=$(echo $project_entry | cut -f5 -d "|")
+	uid=$(echo $project_entry | cut -f1 -d "|")
+	
+	if [[ -d $parameterM ]] && [[ "$(dirname $dir)/" = "$parameterM" ]];
+	then
+		echo -e "$info\tNothing to do. $name is already in $parameterM."
+	elif [[ -d $parameterM ]] && [[ ! -d ${parameterM}${name} ]];
+	then
+		echo -e "$info\tMoving $name from $dir to $parameterM."
+		echo "old_location: $dir" >> ${dir}".project_status"
+		echo "new_location:" >> ${dir}".project_status"
+		echo "  - ${parameterM}${name}" >> ${dir}".project_status"
+		echo "  - $(date +"%Y-%m-%d %T")" >> ${dir}".project_status"
+		mv $dir $parameterM
+		sqlite3 "$DB_FILE" "UPDATE projects SET location = '${parameterM}${name}' WHERE uid = '$uid'"
+	elif [[ ! -d $parameterM ]];
+	then
+		echo -e "$error\t$parameterM destination does not exist."
+	else
+		echo -e "$error\tSomething went wrong with the supplied path."
+	fi	
+fi	
+
+
+# Change the status of a prohect
+if [[ -n $parameterS ]] && [[ $parameterS = "active" ]] || \
+	[[ $parameterS = "complete" ]] || \
+	[[ $parameterS = "suspended" ]];
 then
 	while read l; 
 	do 
@@ -259,7 +357,9 @@ then
 	done < <(sqlite3 "$DB_FILE" "$SQL_QUERY")
 	echo -e "$info\tFinished changing status. $CHECK"
 	exit 0
-else
-	echo -e "$error\tUnknown status. Quitting."
-	exit 1
+fi
+
+if [ $convert_html = true ] || [ $convert_pdf = true ];
+then
+	pandocConvert
 fi

@@ -2,7 +2,7 @@
 
 # I am trying to be more organized
 
-If you're like me shuffling between several different projects during your daily routine this simple collection of scripts might help you keep track of things more easily.
+If this is something you're telling yourself from time to time and if you're like me shuffling between several different projects during your daily routine this simple collection of scripts might help you keep track of things more easily.
 Time and reproduceability are the essence of every research project. Contracts finish and data is handed over to the next person in line. A well organized project folder is worth a lot when you have to continue the work of others.
 The main idea of the scripts collection is to setup a folder and file structure that captures the necessary data and information in a reproducable fashion. Usually my daily work involves performing experiments, capture results from these experiment (images, tables, text files etc.), store them as data and then evaluate this data using some sort of scripts written e.g. in R or Python. While being in this process I have to take notes and write down further ToDos to keep track of what I was doing and what should be done in the future.
 Ideally all this should be under version control to keep track of changes that happend over time allowing you to go back to previous notes or versions of scripts. 
@@ -10,7 +10,7 @@ Automating half of the things that I mentioned above is already a huge help and 
 
 ## Dependencies
 
-The scripts are limited to Unix operating systems.\
+The scripts are limited to Unix operating systems.
 
 Tested and developed on:
 
@@ -24,10 +24,16 @@ Tested and developed on:
   - MacOS - git version 2.39.3 (Apple Git-145) 
 - [SQlite](https://www.sqlite.org/index.html) - managing the project database
   - version 3.37.0
+- [pandoc](https://pandoc.org) - the swiss army knife for document conversion
+  - version 3.1.12.2 (installed with brew)
+- [TeX live](https://tug.org/texlive/) - TeX document production system required by pandoc for PDF
+  - 3.141592653 (TeX Live 2024)
 
  `bash`, `GIT` and `SQlite3` should be preinstalled on most of the unix systems.
 
 ## Install 
+
+**mapro:**
 
 I would recommoned to link the helper scripts to one of the `bin/` directories in your path e.g. `~/.local/bin` on MacOS. Following is an example of how I have it setup:
 
@@ -37,6 +43,33 @@ I would recommoned to link the helper scripts to one of the `bin/` directories i
 ```
 
 Make sure to use the full path to the bash scripts.
+
+**pandoc:**
+
+`mapro` uses pandoc to convert your NOTES.md and README.md files to HTML or PDF files easier sharing of the files with less techsavvy folks out there. I have installed pandoc using [brew](https://brew.sh):
+
+```
+$ brew install pandoc
+```
+
+For other ways of installing `pandoc` check the [website](https://pandoc.org/installing.html)
+
+**TeX live:**
+
+I have installed `TeX live` according to the [install instructions](https://tug.org/texlive/quickinstall.html).
+During the install I specified to install the `small` scheme which corresponds to `BasicTeX`. I strongly recommend to install this version as the full install will take severl GB of your storage.
+
+```
+$ perl ./install-tl --no-interaction --scheme=small
+```
+
+Missing packages for `TeX` can be installed using the package manager:
+
+```
+$ tlmr install <package>
+```
+
+Depending on where you have installed it you might have to run it with `sudo`. The package `framed` is not included in the `BasicTeX` install but is needed if you write code snippets in your markdown files.
 
 ## My generic, all-purpose folder structure
 
