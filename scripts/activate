@@ -25,7 +25,7 @@ helpFunction() {
     echo -e "This script let's you edit your projects data."
     echo ""
     echo -e "Usage: ${G}$(basename -- "$0")${NC} -p <project name>"
-	echo -e "\t-p: project name"
+	echo -e "\t-p / -u: project name / project UID"
 	echo -e "\t-n: open project NOTES.md for editing"
 	echo -e "\t-t: open project TODO.md for editing"
 	echo -e "\t-d: cd into project directory"
@@ -59,8 +59,21 @@ intializeConfig() {
 }	
 
 changeDirectory() {
-    parameterP="$1"
-    dir=$(sqlite3 "$DB_FILE" "SELECT location FROM projects WHERE name = '$parameterP';")
+
+	if [[ -n $parameterP ]] && [[ ! -n $parameterU ]]; 
+	then
+
+		project_entry=$(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE name = '$1';")
+	elif [[ -n $parameterU ]] && [[ ! -n $parameterP ]];
+	then
+
+		project_entry=$(sqlite3 "$DB_FILE" "SELECT * FROM projects WHERE uid = '$1';")
+	fi
+
+	dir=$(echo $project_entry | cut -f5 -d '|')
+	name=$(echo $project_entry | cut -f2 -d '|')
+	uid=$(echo $project_entry | cut -f1 -d '|')
+
     if [ ! -d "$dir" ]; then
         echo -e "$error\tProject directory '$dir' not found."
         exit 1
@@ -73,8 +86,12 @@ changeDirectory() {
 		echo -e "$warn\tNo ~/.bash_profile or ~/.bashrc. The subshell might not have all functionality."
 	fi
 
-	echo 'export PS1="(Project: '$parameterP') \[\e[0;93m\] mapro\[\e[m\] : "' >> $RC_FILE
-	
+	echo '# mapro env variables >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>' >> $RC_FILE
+	echo 'export PS1="(Project: '$name') \[\e[0;93m\] mapro\[\e[m\] : "' >> $RC_FILE
+	echo 'export MAPRO_PROJECT_UID="'$uid'"' >> $RC_FILE
+	echo 'export MAPRO_PROJECT_NAME="'$parameterP'"' >> $RC_FILE
+	echo 'export MAPRO_PROJECT_LOCACTION="'$dir'"' >> $RC_FILE
+
     cd "$dir" 
 	echo -e "$info\tYou are now in: $PWD"
 	echo -e "$info\tExit subshell with 'CTRL + D' or type 'exit'"
@@ -96,12 +113,17 @@ take_notes=false
 take_todo=false
 
 # Parse input
-while getopts "hp:ntde" opt
+while getopts "hp:u:ntde" opt
 do
     case "$opt" in
         p ) 
             parameterP="${OPTARG}"
+			SQL_QUERY="SELECT * FROM projects WHERE name = '$parameterP';"
             ;;
+		u )
+			parameterU="${OPTARG}"
+			SQL_QUERY="SELECT * FROM projects WHERE uid = '$parameterU';"
+			;;
 		e )
 			parameterE="${OPTARG}"
 			editor=$(sqlite3 $DB_FILE "SELECT editor FROM config;")
@@ -119,16 +141,24 @@ do
 			exit 0
 			;;
 		d )
-			changeDirectory "$parameterP"
+			if [[ -n $parameterP ]] && [[ ! -n $parameterU ]];
+			then
+				changeDirectory "$parameterP"
+			elif [[ -n $parameterU ]] && [[ ! -n $parameterP ]];
+			then
+				changeDirectory "$parameterU"
+			fi
 			;;
 		n )
-			dir=$(sqlite3 "$DB_FILE" "SELECT location FROM projects WHERE name = '$parameterP';")
+			project_entry=$(sqlite3 "$DB_FILE" "$SQL_QUERY")
+			dir=$(echo $project_entry | cut -f5 -d '|')
 			editor=$(sqlite3 "$DB_FILE" "SELECT editor FROM config;")
 			notes=$dir"NOTES.md"
 			$editor $notes
 			;;
 		t )
-			dir=$(sqlite3 "$DB_FILE" "SELECT location FROM projects WHERE name = '$parameterP';")
+			project_entry=$(sqlite3 "$DB_FILE" "$SQL_QUERY")
+			dir=$(echo $project_entry | cut -f5 -d '|')
 			todo=$dir"TODO.md"
 			vim $todo
 			;;

@@ -53,10 +53,11 @@ pandocConvert() {
 
 	echo -e "$info\tConverting NOTES.md and README.md of project ${B}$name${NC} to $parameterC."
 	# NOTES.md
+	cd $dir
 	pandoc -V geometry:margin=2cm \
 		-s \
 		--highlight-style=tango \
-		--metadata title="Project: $name" \
+		--metadata title="NOTES: $name" \
 		-f markdown \
 		-t $parameterC \
 		-o $dir"/NOTES."$parameterC $dir"/NOTES.md"
@@ -64,7 +65,7 @@ pandocConvert() {
 	pandoc -V geometry:margin=2cm \
 		-s \
 		--highlight-style=tango \
-		--metadata title="Project: $name" \
+		--metadata title="README: $name" \
 		-f markdown \
 		-t $parameterC \
 		-o $dir"/README."$parameterC $dir"/README.md"
@@ -270,7 +271,7 @@ then
 		echo "  - ${parameterM}${name}" >> ${dir}".project_status"
 		echo "  - $(date +"%Y-%m-%d %T")" >> ${dir}".project_status"
 		mv $dir $parameterM
-		sqlite3 "$DB_FILE" "UPDATE projects SET location = '${parameterM}${name}' WHERE uid = '$uid'"
+		sqlite3 "$DB_FILE" "UPDATE projects SET location = '${parameterM}${name}/' WHERE uid = '$uid'"
 	elif [[ ! -d $parameterM ]];
 	then
 		echo -e "$error\t$parameterM destination does not exist."
@@ -359,6 +360,8 @@ then
 	exit 0
 fi
 
+
+# Convert the NOTES.md and README.md file to html / pdf
 if [ $convert_html = true ] || [ $convert_pdf = true ];
 then
 	pandocConvert
