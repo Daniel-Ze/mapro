@@ -80,62 +80,68 @@ done
 
 # Print all projects
 if [[ "$parameterL" == "true" ]]; then
-	buffer=""
+	buffer=()
 	while read l;
 	do 
 		uid=$(echo $l | cut -f1 -d'|')
-		status=$(echo $l | cut -f6 -d'|')
+		cur_status=$(echo $l | cut -f6 -d'|')
 		name=$(echo $l | cut -f2 -d'|')
 		dir=$(echo $l | cut -f5 -d'|')
-		if [[ $status == "active" ]];
+		
+		if [[ $cur_status == "active" ]];
 		then
-			buffer+="${G}   [active]${NC}\t$uid\t${B}$name${NC}\t$dir\n"
-		elif [[ $status == "suspended" ]];
+			buffer+=("${Y}   [active]${NC}\t$uid\t${B}$name${NC}\t$dir")
+		elif [[ $cur_status == "suspended" ]];
 		then
-			buffer+="${Y}[suspended]${NC}\t$uid\t${B}$name${NC}\t$dir\n"
-		elif [[ $status == "complete" ]];
+			buffer+=("${R}[suspended]${NC}\t$uid\t${B}$name${NC}\t$dir")
+		elif [[ $cur_status == "complete" ]];
 		then
-			buffer+="${Y} [complete]${NC}\t$uid\t${B}$name${NC}\t$dir\n"
+			buffer+=("${G} [complete]${NC}\t$uid\t${B}$name${NC}\t$dir")
 		fi
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects;")
-	sort -n -k3,3 -t '\t' < <(echo -e ${buffer}) | less -SR
+	for i in "${!buffer[@]}"; do echo -e ${buffer[i]}; done | sort -t $'\t' -k3.8 | less -SR 
 	exit
 fi
 
 # Print all active projects
 if [[ "$parameterA" == "true" ]]; then
-	buffer=""
+	buffer=()
 	
 	while read l;
 	do
 		uid=$(echo $l | cut -f1 -d'|')
 		project=$(echo $l | cut -f2 -d'|')
 		dir=$(echo $l | cut -f5 -d'|')
-		buffer+="${G}   [active]${NC}\t$uid\t${B}$project${NC}\t$dir\n"
+		buffer+=("${G}   [active]${NC}\t$uid\t${B}$project${NC}\t$dir")
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE status = 'active';")
-	sort -k3,3 -t '\t' < <(echo -e ${buffer}) | less -SR
+	for i in "${!buffer[@]}"; do echo -e ${buffer[i]}; done | sort -t $'\t' -k3.8 | less -SR
 	exit
 fi
 
 # Check if all files are staged in the different active project repositories
 if [[ "$parameterG" == "true" ]]; then
-	buffer=""
+
+	buffer=()
 	buffer_has_changes=""
 	up_to_date=true
+
 	while read -r l; 
 	do
 		uid=$(echo $l | cut -f1 -d'|')
 		project=$(echo $l | cut -f2 -d'|')
 		dir=$(echo $l | cut -f5 -d'|')
+
 		if ! git -C $dir diff --exit-code > /dev/null; then 
-			buffer+="${R}has-changes${NC}\t$uid\t${B}$project${NC}\t$dir\n"
+			buffer+=("${R}has-changes${NC}\t$uid\t${B}$project${NC}\t$dir")
 			buffer_has_changes+="$dir\n"
 			up_to_date=false
 		else 
-			buffer+="${G}up-to-date${NC} $CHECK\t$uid\t${B}$project${NC}\t$dir\n"
+			buffer+=("${G}up-to-date${NC} $CHECK\t$uid\t${B}$project${NC}\t$dir")
 		fi
+
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE status = 'active'";)
-	sort -k1,3 -t '\t' < <(echo -e ${buffer}) | less -SR
+	for i in "${!buffer[@]}"; do echo -e ${buffer[i]}; done | sort -t $'\t' -k3.8 | less -SR
+
 	if [ $up_to_date = false ];
 	then
 		while true; do
@@ -162,7 +168,7 @@ fi
 # Print projects that match a tag (fuzzy)
 if [[ $search_tag == "true" ]];
 then
-	buffer=""
+	buffer=()
 	IFS=',' read -r -a tags <<< "$parameterT"
 	for tag in "${tags[@]}";
 	do
@@ -175,21 +181,21 @@ then
 			entry_tags=$(echo $l | cut -f4 -d'|')
 			if [[ $status == "active" ]];
 			then
-				buffer+="${G}   [active]${NC}\t$uid\t${B}$name${NC}\t${Y}$entry_tags${NC}\t$dir\n"
+				buffer+=("${G}   [active]${NC}\t$uid\t${B}$name${NC}\t${Y}$entry_tags${NC}\t$dir")
 			elif [[ $status == "complete" ]];
 			then
-				buffer="${Y}$[finished]${NC}\t$uid\t${B}$name${NC}\t${Y}$tag{NC}\t$dir\n"
+				buffer=("${Y}$[finished]${NC}\t$uid\t${B}$name${NC}\t${Y}$tag{NC}\t$dir")
 			fi
 		done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE tags LIKE '%$tag%';")
 	done
-	echo -e ${buffer} | sort | uniq | less -SR
+	for i in "${!buffer[@]}"; do echo -e ${buffer[i]}; done | sort -t $'\t' -k3.8 | less -SR
 	exit
 fi
 
 # Print projects that match input (fuzzy)
 if [[ $name == "true" ]];
 then
-	buffer=""
+	buffer=()
 
 	while read l;
 	do
@@ -198,15 +204,17 @@ then
 		name=$(echo $l | cut -f2 -d'|')
 		dir=$(echo $l | cut -f5 -d'|')
 		entry_tags=$(echo $l | cut -f4 -d'|')
+
 		if [[ $status == "active" ]];
 		then
-			buffer+="${G}   [active]${NC}\t$uid\t${B}$name${NC}\t${Y}$entry_tags${NC}\t$dir\n"
+			buffer+=("${G}   [active]${NC}\t$uid\t${B}$name${NC}\t${Y}$entry_tags${NC}\t$dir")
 		elif [[ $status == "complete" ]];
 		then
-			buffer="${Y}$[finished]${NC}\t$uid\t${B}$name${NC}\t${Y}$tag{NC}\t$dir\n"
+			buffer=("${Y}$[finished]${NC}\t$uid\t${B}$name${NC}\t${Y}$tag{NC}\t$dir")
 		fi
+
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects WHERE name LIKE '%$parameterN%';")
-	echo -e ${buffer} | sort | less -SR
+	for i in "${!buffer[@]}"; do echo -e ${buffer[i]}; done | sort -t $'\t' -k3.8 | less -SR
 	exit
 fi
 
