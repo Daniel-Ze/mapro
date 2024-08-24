@@ -52,8 +52,9 @@ pandocConvert() {
 	name=$(echo $project_entry | cut -f2 -d '|')
 
 	echo -e "$info\tConverting NOTES.md and README.md of project ${B}$name${NC} to $parameterC."
-	# NOTES.md
 	cd $dir
+
+	# NOTES.md
 	pandoc -V geometry:margin=2cm \
 		-s \
 		--highlight-style=tango \
@@ -61,6 +62,7 @@ pandocConvert() {
 		-f markdown \
 		-t $parameterC \
 		-o $dir"/NOTES."$parameterC $dir"/NOTES.md"
+
 	# README.md
 	pandoc -V geometry:margin=2cm \
 		-s \
@@ -158,8 +160,17 @@ fi
 # Check if project name or uid was given
 if [[ ! -n $parameterP ]] && [[ ! -n $parameterU ]];
 then
-	echo -e "$error\tEither project name or uid needed."
-	exit 1
+	if [[ ! -n $MAPRO_PROJECT_NAME ]] && [[ ! -n $MAPRO_PROJECT_UID ]];
+	then
+		echo -e "$error\tEither project name or uid needed."
+		exit 1
+	elif [[ -n $MAPRO_PROJECT_NAME ]];
+	then
+		parameterP=$MAPRO_PROJECT_NAME
+	elif [[ -n $MAPRO_PROJECT_UID ]];
+	then
+		parameterU=$MAPRO_PROJECT_UID
+	fi
 fi
 
 
