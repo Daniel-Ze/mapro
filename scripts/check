@@ -49,9 +49,9 @@ do
 		a )
 			parameterA="true"
 			;;
-        g ) 
-            parameterG="true" 
-            ;;
+        	g ) 
+            		parameterG="true" 
+            		;;
 		i )
 			parameterI="true"
 			;;
@@ -72,15 +72,15 @@ do
 		v )
 			verbose="true"
 			;;
-        h ) 
-            helpFunction
-            ;;
+        	h ) 
+            		helpFunction
+            		;;
     esac
 done
 
 # Print all projects
 if [[ "$parameterL" == "true" ]]; then
-	buffer=()
+	buffer=() # array for storing the formatted database output
 	while read l;
 	do 
 		uid=$(echo $l | cut -f1 -d'|')
@@ -99,6 +99,10 @@ if [[ "$parameterL" == "true" ]]; then
 			buffer+=("${G} [complete]${NC}\t$uid\t${B}$name${NC}\t$dir")
 		fi
 	done < <(sqlite3 $DB_FILE "SELECT * FROM projects;")
+	# Printing out the buffer array using index to preserve lines:
+	#   - using echo -e for terminal colors
+	#   - sorting with sort using "\t" as delimiter and sorting on column 3 starting at 8 ignoring the color encoding
+	#   - piping to less with -S for no line break and -R for legacy color support
 	for i in "${!buffer[@]}"; do echo -e ${buffer[i]}; done | sort -t $'\t' -k3.8 | less -SR 
 	exit
 fi
@@ -229,13 +233,13 @@ then
 		then
 			if [[ $verbose == "true" ]];
 			then
-				echo -e "$info\t$l exists."
+				echo -e "$info\t$l ${G}exists${NC}."
 			fi
 		else
 			count = $count + 1
 			if [[ $verbose == "true" ]];
 			then
-				echo -e "$error\t$l does not exist."
+				echo -e "$error\t$l ${R}does not exist${NC}."
 			fi
 		fi
 	done < <(sqlite3 $DB_FILE "SELECT location FROM projects;")
