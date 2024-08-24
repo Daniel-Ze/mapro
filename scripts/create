@@ -198,7 +198,7 @@ done
 
 # - .project_status
 #   - put 'active' as status
-uid=$(ls -alR $pd | md5)
+uid=$(ls -alR $pd | md5sum | cut -f1 -d " ")
 echo -e "status: active" > $pd".project_status"
 echo -e "uid: $uid" >> $pd".project_status"
 
