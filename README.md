@@ -12,9 +12,10 @@ Automating half of the things that I mentioned above is already a huge help and 
 
 The scripts are limited to Unix operating systems.
 
-Tested and developed on:
+Tested on:
 
 - MacOS 13.6
+- Ubuntu 24.04
 
 **Dependencies**:
 
