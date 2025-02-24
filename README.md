@@ -1,12 +1,17 @@
 ![](img/header.png)
 
-# I am trying to be more organized
+# `mapro` - Manage projects and keep track of them
 
-If this is something you're telling yourself from time to time and if you're like me shuffling between several different projects during your daily routine this simple collection of scripts might help you keep track of things more easily.
-Time and reproduceability are the essence of every research project. Contracts finish and data is handed over to the next person in line. A well organized project folder is worth a lot when you have to continue the work of others.
-The main idea of the scripts collection is to setup a folder and file structure that captures the necessary data and information in a reproducable fashion. Usually my daily work involves performing experiments, capture results from these experiment (images, tables, text files etc.), store them as data and then evaluate this data using some sort of scripts written e.g. in R or Python. While being in this process I have to take notes and write down further ToDos to keep track of what I was doing and what should be done in the future.
-Ideally all this should be under version control to keep track of changes that happend over time allowing you to go back to previous notes or versions of scripts. 
-Automating half of the things that I mentioned above is already a huge help and that's why I wrote these scripts to organize a project and keep track of what I have started over the time.
+If you're like me shuffling between several different projects during your daily routine this simple collection of scripts might help you keep track of things more easily.
+Time and reproduceability are the essence of every research project. Contracts finish and data is handed over to the next person in line. A well organized project folder is worth a lot when you have to continue the work of others. \
+The main idea of `mapro` is:
+- Setup a folder and file structure that captures the necessary data and information in a reproducable fashion.
+- Folders to store data, images and scripts (e.g. in `R` or `Python`)
+- Generate files for Notes and ToDos to keep track of what I was doing and what should be done in the future.
+- Put everything under version control using `GIT` to keep track of changes that happend over time.
+- Keep track of multiple projects by storing meta data in a `SQlite` database allowing targeted editing of different projects.
+
+`mapro` will do all that. As I like `conda` for its dedicated environments I tried to implement a similar activation / deactivation mechanism for `mapro` allowing to easily move between projects. I tried to keep everything simple by using bash to script `mapro`. All dependencies are either preinstalled on unix systems (bash, GIT, SQlite) or are easily installable and open source (pandoc, TeXlive).
 
 ## Dependencies
 
@@ -30,7 +35,7 @@ Tested on:
 - [TeX live](https://tug.org/texlive/) - TeX document production system required by pandoc for PDF
   - 3.141592653 (TeX Live 2024)
 
- `bash`, `GIT` and `SQlite3` should be preinstalled on most of the unix systems.
+ `bash`, `GIT` and `SQlite3` should be preinstalled on most unix systems.
 
 ## Install 
 
@@ -431,4 +436,3 @@ Dry-run, the following will be executed when running without -d:
  [info] Command:        rm -r /Users/daniel/Documents/create_project/test/
  [info] Command:        sqlite3 /Users/daniel/.projects.db "DELETE FROM projects WHERE name = 'test';"
 ```
-
