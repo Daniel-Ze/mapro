@@ -3,15 +3,15 @@
 # `mapro` - Manage projects and keep track of them
 
 If you're like me shuffling between several different projects during your daily routine this simple collection of scripts might help you keep track of things more easily.
-Time and reproduceability are the essence of every research project. Contracts finish and data is handed over to the next person in line. A well organized project folder is worth a lot when you have to continue the work of others. \
+Time and reproducibility are the essence of every research project. Contracts finish and data is handed over to the next person in line. A well organized project folder is worth a lot when you have to continue the work of others. \
 The main idea of `mapro` is:
-- Setup a folder and file structure that captures the necessary data and information in a reproducable fashion.
+- Setup a folder and file structure that captures the necessary data and information in a reproducible fashion.
 - Folders to store data, images and scripts (e.g. in `R` or `Python`)
 - Generate files for Notes and ToDos to keep track of what I was doing and what should be done in the future.
-- Put everything under version control using `GIT` to keep track of changes that happend over time.
+- Put everything under version control using `GIT` to keep track of changes that happened over time.
 - Keep track of multiple projects by storing meta data in a `SQlite` database allowing targeted editing of different projects.
 
-`mapro` will do all that. As I like `conda` for its dedicated environments I tried to implement a similar activation / deactivation mechanism for `mapro` allowing to easily move between projects. I tried to keep everything simple by using bash to script `mapro`. All dependencies are either preinstalled on unix systems (bash, GIT, SQlite) or are easily installable and open source (pandoc, TeXlive).
+`mapro` will do all that. As I like `conda` for its dedicated environments I tried to implement a similar activation / deactivation mechanism for `mapro` allowing to easily move between projects. I tried to keep everything simple by using bash to script `mapro`. All dependencies are either preinstalled on UNIX systems (bash, GIT, SQlite) or are easily installable and open source (pandoc, TeXlive).
 
 ## Dependencies
 
@@ -35,7 +35,7 @@ Tested on:
 - [TeX live](https://tug.org/texlive/) - TeX document production system required by pandoc for PDF
   - 3.141592653 (TeX Live 2024)
 
- `bash`, `GIT` and `SQlite3` should be preinstalled on most unix systems.
+ `bash`, `GIT` and `SQlite3` should be preinstalled on most UNIX systems.
 
 ## Install 
 
@@ -52,7 +52,7 @@ Make sure to use the full path to the bash scripts.
 
 **pandoc:**
 
-`mapro` uses pandoc to convert your NOTES.md and README.md files to HTML or PDF files easier sharing of the files with less techsavvy folks out there. I have installed pandoc using [brew](https://brew.sh):
+`mapro` uses pandoc to convert your NOTES.md and README.md files to HTML or PDF files easier sharing of the files with less tech savvy folks out there. I have installed pandoc using [brew](https://brew.sh):
 
 ```
 $ brew install pandoc
@@ -63,7 +63,7 @@ For other ways of installing `pandoc` check the [website](https://pandoc.org/ins
 **TeX live:**
 
 I have installed `TeX live` according to the [install instructions](https://tug.org/texlive/quickinstall.html).
-During the install I specified to install the `small` scheme which corresponds to `BasicTeX`. I strongly recommend to install this version as the full install will take severl GB of your storage.
+During the install I specified to install the `small` scheme which corresponds to `BasicTeX`. I strongly recommend to install this version as the full install will take several GB of your storage.
 
 ```
 $ perl ./install-tl --no-interaction --scheme=small
@@ -143,7 +143,7 @@ Available helper scripts:
         activate - lets you edit contents in the project folder.
 ```
 
-The first thing you might want to do is creating your first project folder. Naviagate to the directory in which the project will be stored and execute `mapro create`. 
+The first thing you might want to do is creating your first project folder. Navigate to the directory in which the project will be stored and execute `mapro create`. 
 
 ```bash
 (base) 💻 daniel:create_project $ mapro create
@@ -176,7 +176,7 @@ The following part of the script will guide you through the generation of the pr
 
 ![](https://github.com/Daniel-Ze/mapro/blob/main/img/mapro_create_project.gif)
 
-1. Where are you. Cofirm that you want to generate a new project here:
+1. Where are you. Confirm that you want to generate a new project here:
 
 ```bash
 (base) 💻 daniel:create_project $ mapro create -p test
@@ -226,7 +226,7 @@ TODO:
  [info] Running git init, git add and git commit
 
 Initialized empty Git repository in /Users/daniel/Documents/create_project/test/.git/
-[main (root-commit) 5055ef7] Project test intialized and tracked
+[main (root-commit) 5055ef7] Project test initialized and tracked
  4 files changed, 12 insertions(+)
  create mode 100644 .project_status
  create mode 100644 NOTES.md
@@ -238,7 +238,7 @@ Initialized empty Git repository in /Users/daniel/Documents/create_project/test/
 
 ## Editing files in project folders
 
-Changing direcotories to add notes or todos can be tedious if you have to jump between projects. That's why I wrote mapro activate get to the project folders more easily.
+Changing directories to add notes or todos can be tedious if you have to jump between projects. That's why I wrote `mapro activate` get to the project folders more easily.
 
 ![](https://github.com/Daniel-Ze/mapro/blob/main/img/mapro_activate.gif)
 
@@ -350,7 +350,7 @@ If there are unstaged file changes in one of the projects `mapro check -g` will 
                                                while read l; do git -C $l add .; done
 ```
 
-- Search projects with a certain tag. The search is automatically fuzzy and will retun results that are similar to the tags entered.
+- Search projects with a certain tag. The search is automatically fuzzy and will return results that are similar to the tags entered.
 
 ```bash
 (base) 💻 daniel:create_project $ mapro check -t test
