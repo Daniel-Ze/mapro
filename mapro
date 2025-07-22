@@ -14,6 +14,18 @@ CHECK=${G}'\xE2\x9C\x94'${NC}
 script_path=$(readlink -f "$0")
 scripts_dir=$(dirname "$script_path")
 
+DB_FILE=$HOME"/.projects.db"
+MAPRO_VERSION="version 0.01-alpha"
+
+checkVersion() {
+	if [[ -f $DB_FILE ]]; then
+		MAPRO_DB_VERSION=$(sqlite3 "$DB_FILE" "SELECT version FROM config;")
+		echo -e "\tDB:\t"$MAPRO_DB_VERSION
+	fi
+	
+	echo -e "\tmapro:\t"$MAPRO_VERSION	
+}
+
 helpFunction() {
 	echo -e ""
 	echo -e "${Y}mapro${NC} is there to help you organize your projects."
@@ -24,18 +36,19 @@ helpFunction() {
 	echo -e ""
 	echo -e "Available helper scripts:"
 	echo -e ""
-	echo -e "\t${G}create${NC}\t- creates a new project with folder" \
+	echo -e "\t${G}create${NC}\t  creates a new project with folder" \
 			"structure"
 	echo -e "\t\t  and files to keep track of things."
-	echo -e "\t${G}check${NC}\t- overview of created projects to" \
+	echo -e "\t${G}check${NC}\t  overview of created projects to" \
 			"keep track"
 	echo -e "\t\t  of what you're doing"
-	echo -e "\t${G}edit${NC}\t- editing an existing project"
+	echo -e "\t${G}edit${NC}\t  editing an existing project"
 	echo -e "\t\t  (e.g. rename, move, change project status)"
-	echo -e "\t${G}remove${NC}\t- removes an existing project"
+	echo -e "\t${G}remove${NC}\t  removes an existing project"
 	echo -e "\t\t  (completely deletes everything)"
-	echo -e "\t${G}activate${NC}\t- lets you edit contents in"
+	echo -e "\t${G}activate${NC}  lets you edit contents in"
 	echo -e "\t\t  the project folder."
+	echo -e "\t${G}version${NC}\t  Print version and quit."
 	echo -e ""
 }
 
@@ -43,37 +56,41 @@ while true; do
     script_name=$1
 
     case $script_name in
-        create )
-            $scripts_dir"/scripts/create" "${@:2}"
-			break
-            ;;
-        check )
-            $scripts_dir"/scripts/check" "${@:2}"
-			break
-            ;;
-		edit )
-			$scripts_dir"/scripts/edit" "${@:2}"
-			break
-			;;
-		remove )
-			$scripts_dir"/scripts/remove" "${@:2}"
-			break
-			;;
-		status )
-			$scripts_dir"/scripts/status" "${@:2}"
-			break
-			;;
-		activate )
-			$scripts_dir"/scripts/activate" "${@:2}"
-			break
-			;;
-        -h | --help | help )
-            helpFunction
-            exit 0
-            ;;
-        *)
-            helpFunction
-			exit 0
-            ;;
+	create )
+		$scripts_dir"/scripts/create" "${@:2}"
+		break
+		;;
+	check )
+		$scripts_dir"/scripts/check" "${@:2}"
+		break
+		;;
+	edit )
+	    $scripts_dir"/scripts/edit" "${@:2}"
+	    break
+	    ;;
+	remove )
+	    $scripts_dir"/scripts/remove" "${@:2}"
+	    break
+	    ;;
+	status )
+	    $scripts_dir"/scripts/status" "${@:2}"
+	    break
+	    ;;
+	activate )
+	    $scripts_dir"/scripts/activate" "${@:2}"
+	    break
+	    ;;
+	version )
+	    checkVersion
+	    exit 0
+	    ;;
+	-h | --help | help )
+		helpFunction
+		exit 0
+		;;
+	* )
+		helpFunction
+		exit 0
+		;;
     esac
 done
