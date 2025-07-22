@@ -40,7 +40,7 @@ intializeConfig() {
 		SQL_CREATE_TABLE="CREATE TABLE config (
     	                    version TEXT NOT NULL,
     	                    editor TEXT NOT NULL,
-							status TEXT NOT NULL
+			    status TEXT NOT NULL
     	                );"
 		SQL_WRITE_TO_TABLE="INSERT INTO config (
 							  version,
@@ -81,20 +81,23 @@ changeDirectory() {
 	if [ -e $BASH_PROFILE ] && [ ! -e $BASHRC ]; then
 		cat $BASH_PROFILE > $RC_FILE
 	elif [ ! -e $BASH_PROFILE ] && [ -e $BASHRC ]; then
-		cat $BASH_PROFILE > $RC_FILE
+		cat $BASHRC > $RC_FILE
 	else
 		echo -e "$warn\tNo ~/.bash_profile or ~/.bashrc. The subshell might not have all functionality."
 	fi
 
 	echo '# mapro env variables >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>' >> $RC_FILE
-	echo 'export PS1="(Project: '$name') \[\e[0;93m\] mapro\[\e[m\] : "' >> $RC_FILE
+	echo 'export PS1="(Project: '$name') \[\e[0;93m\] mapro\[\e[m\] \W : "' >> $RC_FILE
 	echo 'export MAPRO_PROJECT_UID="'$uid'"' >> $RC_FILE
 	echo 'export MAPRO_PROJECT_NAME="'$parameterP'"' >> $RC_FILE
 	echo 'export MAPRO_PROJECT_LOCACTION="'$dir'"' >> $RC_FILE
 
     cd "$dir" 
-	echo -e "$info\tYou are now in: $PWD"
-	echo -e "$info\tExit subshell with 'CTRL + D' or type 'exit'"
+	echo -e "       =============================================================="
+    echo -e "$info  mapro activated a subshell in project folder."
+	echo -e "$info  You are now in: $PWD"
+	echo -e "$info  Exit subshell with 'CTRL + D' or type 'exit'"
+	echo -e "       =============================================================="
 	exec bash --rcfile $RC_FILE
 }
 
